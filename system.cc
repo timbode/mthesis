@@ -28,12 +28,28 @@ const double L=a/(N+1);
 const double k=1000;
 
 // Matrizen
-double T[N][N];
-double D[N][N];
+double Cos[N];
+double Sin[N];
+double Sindot[N];
 
+double T[N][N];
+	//double D[N][N];
+double T_Cos[N][N];
+double T_Sin[N][N];
+double T_Sindot[N][N];
+double R_Cos[N][N];
+double R_Sin[N][N];
+double R_Sindot[N][N];
+
+
+// Diese Funktion laeuft nur einmal, darf deshalb unoekonomisch sein
 void TridiagToeplitz() {
 	for (int i=0; i<N; i++) {
-		D[i][i]=(2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1);
+		// delta_t=h/E_0
+		//D[i][i]=((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1));
+		Cos[i]=cos(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))*h/E_0);// ACHTUNG: assuming matrix D is neg. def.
+		   Sin[i]=sin(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))*h/E_0)/(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))); // divided by omega
+		Sindot[i]=sin(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))*h/E_0)*(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))); // multiplied by omega
 		
 		// Wie kann ich diesen extra loop vermeiden?
 		double norm=0;
@@ -43,8 +59,28 @@ void TridiagToeplitz() {
 		norm=sqrt(norm);
 		for (int j=0; j<N; j++) {
 			T[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))/norm;
+			
+			// die Spalten der Matrix mit den Faktoren fuer die Zeitentwicklung ergaenzen (also sparsity ausnutzen)
+			T_Cos[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))*Cos[i]/norm;
+			T_Sin[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))*Sin[i]/norm;
+			T_Sindot[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))*Sindot[i]/norm;
 		}
 	}
+	
+	// Matrizen berechnen, die Startwerte direkt mit Zeitentwicklung verbinden: z. B. T*Cos*T^-1
+	for (int i=0; i<N; i++) {
+		for (int j=0; j<N; j++) {
+			R_Cos[i][j]=0;
+			R_Sin[i][j]=0;
+			R_Sindot[i][j]=0;
+			for (int k=0; k<N; k++) {
+				   R_Cos[i][j]+=   T_Cos[i][k]*T[j][k]; // T transposed...
+				   R_Sin[i][j]+=   T_Sin[i][k]*T[j][k]; // T transposed...
+				R_Sindot[i][j]+=T_Sindot[i][k]*T[j][k]; // T transposed...
+			}
+		}
+	}
+	
 }
 
 class System {
@@ -53,8 +89,6 @@ class System {
 	System(double, double, double*, double*);
 	
 	// Teilchen
-	double delta_t;
-	
 	double pos;
 	double v;
 	
@@ -62,8 +96,14 @@ class System {
 	double x[N];
 	double xdot[N];
 	
-	double y[N];
-	double ydot[N];
+	double w[N];
+	double wdot[N];
+	
+	// pointer
+	double* x_ptr;
+	double* w_ptr;
+	double* xdot_ptr;
+	double* wdot_ptr;
 	
 	// Methoden
 	double Collision(double, double, double, double);
@@ -73,9 +113,9 @@ class System {
 
 // initializing double delta_t, double pos, double v, double* x, double* xdot
 System::System(double pos_0, double v_0, double* x_0, double* xdot_0) {
-	delta_t=h/E_0; // irgendwie initialisieren: als erstes findet ein Stoss statt
 	pos=pos_0;
 	v=v_0;
+	
 	for (int i=0; i<N; i++) {
 		x[i]=*x_0;
 		x_0++;
@@ -83,6 +123,12 @@ System::System(double pos_0, double v_0, double* x_0, double* xdot_0) {
 		xdot[i]=*xdot_0;
 		xdot_0++;
 	}
+	
+	// pointer initialisieren
+	x_ptr=x;
+	xdot_ptr=xdot;
+	w_ptr=w;
+	wdot_ptr=wdot;
 }
 
 double System::Collision(double m1, double v1, double m2, double v2) {
@@ -91,13 +137,35 @@ double System::Collision(double m1, double v1, double m2, double v2) {
 
 void System::Oscillate() {
 	for (int i=0; i<N; i++) {
-		x[i]=0;
-		xdot[i]=0;
+		*w_ptr=0;
+		*wdot_ptr=0;
 		for (int j=0; j<N; j++) {
-			x[i]+=T[i][j]*(y[j]*cos(sqrt(-D[j][j])*delta_t) + (ydot[j]/(sqrt(-D[j][j])))*sin(sqrt(-D[j][j])*delta_t)); // ACHTUNG: assuming matrix D is neg. def.
-			xdot[i]+=T[i][j]*(ydot[j]*cos(sqrt(-D[j][j])*delta_t) - y[j]*(sqrt(-D[j][j]))*sin(sqrt(-D[j][j])*delta_t));
+			*w_ptr+=(R_Cos[i][j]*(*x_ptr) + R_Sin[i][j]*(*xdot_ptr));
+			*wdot_ptr+=(R_Cos[i][j]*(*xdot_ptr) - R_Sindot[i][j]*(*x_ptr));
+			x_ptr++;
+			xdot_ptr++;
 		}
+		w_ptr++;
+		wdot_ptr++;
+		
+		x_ptr=x_ptr-N; // set pointers back to start
+		xdot_ptr=xdot_ptr-N;
 	}
+	w_ptr=w_ptr-N; // set pointers back to start
+	wdot_ptr=wdot_ptr-N;
+
+	// interchange actual and previous values
+	double* help_ptr;
+	double* helpdot_ptr;
+
+	help_ptr=x_ptr;
+	helpdot_ptr=xdot_ptr;
+
+	x_ptr=w_ptr;
+	xdot_ptr=wdot_ptr;
+	
+	w_ptr=help_ptr;
+	wdot_ptr=helpdot_ptr;
 }
 
 // argument files are particle_data, lattice_positions, lattice_velocities
@@ -117,34 +185,15 @@ double* System::Evolve(double* arr) {
 	
 	// neue Geschwindigkeiten berechnen
 	double w=v; // temporarily copy v
-	v=this->Collision(M, v, m, xdot[index]);
+	v=this->Collision(M, v, m, *(xdot_ptr + index));
 	
-	xdot[index]=this->Collision(m, xdot[index], M, w); // use w
-	
-	// delta_t updaten
-	//delta_t=1/((M*c*c/h) + (0.5*M*v*v/h));
-	
+	*(xdot_ptr + index)=this->Collision(m, *(xdot_ptr + index), M, w); // use w
+
 	// Position updaten
-	pos+=v*delta_t;
-	
-	// update delta_t und Position zusammenfassen
-	//pos+=2*h/(M*v);
-	
-	//------------------------------------------------------------------------------------------------------------------------------------------------------
+	pos+=v*h/E_0;
 	
 	// Gitter weiterentwickeln
-	for (int i=0; i<N; i++) {
-		y[i]=0;
-		ydot[i]=0;
-		for (int j=0; j<N; j++) {
-			y[i]+=T[j][i]*x[j]; // Transponierung aber nicht notwendig: T ist sym.
-			ydot[i]+=T[j][i]*xdot[j];
-		}
-	}
-	
 	this->Oscillate(); // sets x and xdot to new values
-	
-	//------------------------------------------------------------------------------------------------------------------------------------------------------
 	
 	// Reflektion
 	double B=(N+1)*L; // B=a...
@@ -159,8 +208,6 @@ double* System::Evolve(double* arr) {
 	}
 	
 	// Position, resultierenden Index, resultierende Geschwindigkeiten des Teilchens und der Gittermasse speichern (v ist dann die Ausgangsgeschw. fuer den folgenden Stoss)
-	//file1 << b << "   " << pos << "   " << index << "   " << v << "   " << xdot[index] << endl;
-	
 	*arr=b;
 	arr++;
 	*arr=pos;
@@ -169,7 +216,7 @@ double* System::Evolve(double* arr) {
 	arr++;
 	*arr=v;
 	arr++;
-	*arr=xdot[index];
+	*arr=*(xdot_ptr + index);
 	arr++;
 	
 	return arr;
@@ -189,15 +236,6 @@ int main() {
 
 // Matrizen erzeugen
 TridiagToeplitz();
-
-/*
-for (int i=0; i<N; i++) {
-	for (int j=0; j<N; j++) {
-		cout << T[i][j] << " ";
-	}
-	cout << endl;
-}
-*/
 
 // Raeumliche Aufloesung Anfangswerte
 const unsigned int resol=1;
@@ -251,8 +289,6 @@ for (int i=0; i<resol*steps; i++) {
 }
 
 particle_data.close();
-
-
 
 return 0;
 }
