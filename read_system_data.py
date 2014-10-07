@@ -115,6 +115,8 @@ for j in xrange(0,resol):
 			else:
 				AddInterval(bin_width,final,initial,loc_prob,weight,weights)
 
+#---------------------------------------------------------------------------------
+
 pp=PdfPages('output.pdf')		
 plt.hist(loc_prob, bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=0, weights=weights, facecolor='green')
 plt.savefig(pp,format='pdf')
