@@ -5,15 +5,27 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=20;
+const unsigned int N=10;
+
+// Energielevel
+const unsigned int n=1;
+// Boxlaenge
+const double a=1.0*1e-12;
+
+const double h=6.62606957*1e-34;
+const double m_e=9.10938291*1e-31;
+const double c=299792458;
 
 // Teilchenmasse
-const double M=100.0;
-// Gitterteilchenmasse
-const double m=1.0;
+const double M=m_e;
 
-const double L=1.0;
-const double k=10000000.0;//const double k=N*N*m*10e16/(((N+1)*L)*((N+1)*L));
+// Energie
+const double E_0=n*n*h*h/(8*M*a*a);
+
+// Gitterteilchenmasse
+const double m=m_e/N;
+const double L=a/(N+1);
+const double k=N*N*m*c*c/(a*a);
 
 // Matrizen
 double T[N][N];
@@ -38,7 +50,7 @@ void TridiagToeplitz() {
 class System {
    public:
    	// constructor
-	System(double, double, double, double*, double*);
+	System(double, double, double*, double*);
 	
 	// Teilchen
 	double delta_t;
@@ -60,8 +72,8 @@ class System {
 };
 
 // initializing double delta_t, double pos, double v, double* x, double* xdot
-System::System(double time_step, double pos_0, double v_0, double* x_0, double* xdot_0) {
-	delta_t=time_step;
+System::System(double pos_0, double v_0, double* x_0, double* xdot_0) {
+	delta_t=1.0; // irgendwie initialisieren: als erstes findet ein Stoss statt
 	pos=pos_0;
 	v=v_0;
 	for (int i=0; i<N; i++) {
@@ -109,17 +121,20 @@ void System::Evolve(ofstream& file1, ofstream& file2, ofstream& file3) {
 		index+=1; // links
 	}
 	
-	// Position, resultierenden Index, Ausgangsgeschwindigkeiten des Teilchens und der Gittermasse speichern
-	file1 << pos << "   " << index << "   " << v << "   " << xdot[index] << endl;	
-	
 	// neue Geschwindigkeiten berechnen
 	double w=v; // temporarily copy v
 	v=this->Collision(M, v, m, xdot[index]);
 	
 	xdot[index]=this->Collision(m, xdot[index], M, w); // use w
 	
+	// delta_t updaten
+	delta_t=1/((M*c*c/h) + (0.5*M*v*v/h));
+	
 	// Position updaten
 	pos+=v*delta_t;
+	
+	// update delta_t und Position zusammenfassen
+	//pos+=2*h/(M*v);
 	
 	// Gitter weiterentwickeln
 	for (int i=0; i<N; i++) {
@@ -150,7 +165,7 @@ void System::Evolve(ofstream& file1, ofstream& file2, ofstream& file3) {
 	this->Oscillate(); // sets x and xdot to new values
 	
 	// Reflektion
-	double B=(N+1)*L; // B=D...
+	double B=(N+1)*L; // B=a...
 	int b=floor(pos/B);
 	if ((b % 2) == 0) { // gerade
 		pos=pos - b*B;
@@ -161,7 +176,13 @@ void System::Evolve(ofstream& file1, ofstream& file2, ofstream& file3) {
 		v=-v;
 	}
 	
-	//cout << pos << " " << v << endl;
+	// Position, resultierenden Index, resultierende Geschwindigkeiten des Teilchens und der Gittermasse speichern (v ist dann die Ausgangsgeschw. fuer den folgenden Stoss)
+	file1 << b << "   " << pos << "   " << index << "   " << v << "   " << xdot[index] << endl;
+	
+	// Dringend beachten: Das Teilchen fliegt mit der hier gespeicherten Geschw. v vom vorigen Ort zum hier gespeicherten Ort.
+	// Der Index gehoert zum vorigen Ort, weil er vor dem Update der Position gesetzt wird.
+	// b gehoert hingegen zur aktuellen, weil upgedateten Position.
+	
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -190,25 +211,35 @@ lattice_velocities.open("lattice_velocities.txt");
 double x_0[N]={};
 double xdot_0[N]={};
 
-// "Frequenz"
-double time_step=1.0;
+// Anzahl Zeitschritte
+int steps=10;
 
-// Anfangswerte Teilchen
-double pos_0=10.0;
-double v_0=420.0;
+// Anfangsgeschwindigkeit Teilchen
+double v_0=n*h/(2*M*a);
+
+// Raeumliche Aufloesung Anfangswerte
+const unsigned int resol=2;
+double pos_0s[resol]={50.75646,60.75646};//,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0};
 
 particle_data << "# N: " << N << endl;
 particle_data << "# M: " << M << endl;
 particle_data << "# m: " << m << endl;
-particle_data << "# v_0: " << v_0 << endl; 
+particle_data << "# v_0: " << v_0 << endl;
+particle_data << "# L: " << L << endl; 
+particle_data << "# steps: " << steps << endl;  
+particle_data << "# resol: " << resol << endl; 
 particle_data << "# ----------------------------" << endl;
 particle_data << "# ----------------------------" << endl;
 
-System sys(time_step, pos_0, v_0, x_0, xdot_0);
+for (int ii=0; ii<resol; ii++) {
+	// Anfangsposition Teilchen
+	double pos_0=pos_0s[ii]*L;
 
-int steps=1000;
-for (int i=0; i<steps; i++) {
-	sys.Evolve(particle_data, lattice_positions, lattice_velocities);
+	System sys(pos_0, v_0, x_0, xdot_0);
+
+	for (int i=0; i<steps; i++) {
+		sys.Evolve(particle_data, lattice_positions, lattice_velocities);
+	}
 }
 
 particle_data.close();
