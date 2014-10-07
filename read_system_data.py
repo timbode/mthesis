@@ -9,17 +9,12 @@ lattice_positions=[]
 lattice_velocities=[]
 
 with open('particle_data.txt') as f:
-	for k,line in enumerate(f):
+	for line in f:
 		if line.startswith("#"):
 			strang=line.strip().split()
 			constants.append(strang)
-		else:
-			if line > 100:
-				continue	
+		else:	
 			string=line.strip().split()
-			if len(string) > 5:
-				continue
-			print k, " ", string
 			Dict={}
 			Dict['b']=int(string[0])
 			Dict['pos']=float(string[1])
@@ -32,6 +27,7 @@ with open('particle_data.txt') as f:
 constants=constants[:-2]
 print constants
 
+'''
 #---------------------------------------------------------------------------------
 
 with open('lattice_positions.txt') as f:
@@ -55,6 +51,7 @@ with open('lattice_velocities.txt') as f:
 	f.close()
 	
 #---------------------------------------------------------------------------------	
+'''
 
 def AddInterval(bin_width,c,d,liste,weight,weights): # Interval [c,d]
 	for k in xrange(int(floor(c/bin_width)),int(ceil(d/bin_width))):
@@ -67,8 +64,8 @@ def AddInterval(bin_width,c,d,liste,weight,weights): # Interval [c,d]
 L=float(constants[4][2])
 N=int(constants[0][2])
 steps=int(constants[5][2])
-resol=int(constants[5][2])
-bins=N
+resol=int(constants[6][2])
+bins=N/2
 bin_width=(N+1)*L/bins
 burn_in=steps/5
 
@@ -76,7 +73,7 @@ mean_velo=[]
 for i in xrange(0,burn_in):
 	#print particle_data[len(particle_data)-i-1]['v']
 	mean_velo.append(particle_data[len(particle_data)-i-1]['v'])
-	
+
 print '-------------------------'
 print max(mean_velo)
 print min(mean_velo)
@@ -86,10 +83,10 @@ loc_prob=[]
 weights=[]
 for j in xrange(0,resol):
 	for i in xrange(0,steps - burn_in):
-		b=particle_data[j*steps + burn_in + i+1]['b']
-		initial=particle_data[j*steps + burn_in + i]['pos']
-		final=particle_data[j*steps + burn_in + i+1]['pos']
-		weight=1/abs(particle_data[j*steps + burn_in + i+1]['v'])
+		b=particle_data[j*steps + burn_in + i]['b']
+		initial=particle_data[j*steps + burn_in + i-1]['pos']
+		final=particle_data[j*steps + burn_in + i]['pos']
+		weight=1/abs(particle_data[j*steps + burn_in + i]['v'])
 		if b < 0:
 			if (b % 2) == 0: # gerade
 				AddInterval(bin_width,0,initial,loc_prob,weight,weights)
