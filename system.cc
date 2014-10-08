@@ -5,27 +5,29 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=10;
+const unsigned int N=300;
 
 // Energielevel
 const unsigned int n=1;
+
 // Boxlaenge
 const double a=1.0;
 
+// Wirkungsquantum
 const double h=1.0;//6.62606957*1e-34;
-const double m_e=9.10938291*1e-31;
-const double c=299792458;
 
 // Teilchenmasse
 const double M=1.0;
 
 // Energie
-const double E_0=1000.0;//n*n*h*h/(8*M*a*a);
+const double E_0=n*n*h*h/(8*M*a*a);
 
 // Gitterteilchenmasse
-const double m=M;
+// ca. 1000*M < m < 10000*M bei N=300 und n=1
+const double m=10000*M;
+
 const double L=a/(N+1);
-const double k=1000;
+const double k=(-1)*(1/((cos(M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));
 
 // Matrizen
 double Cos[N];
@@ -33,10 +35,10 @@ double Sin[N];
 double Sindot[N];
 
 double T[N][N];
-	//double D[N][N];
 double T_Cos[N][N];
 double T_Sin[N][N];
 double T_Sindot[N][N];
+
 double R_Cos[N][N];
 double R_Sin[N][N];
 double R_Sindot[N][N];
@@ -44,12 +46,14 @@ double R_Sindot[N][N];
 
 // Diese Funktion laeuft nur einmal, darf deshalb unoekonomisch sein
 void TridiagToeplitz() {
+	cout << k << endl;
+	//cout << 2*M_PI << "   " << sqrt(-((2*k/m)*(cos(M_PI/(N+1)) - 1)))/E_0<< endl;
 	for (int i=0; i<N; i++) {
-		// delta_t=h/E_0
-		//D[i][i]=((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1));
-		Cos[i]=cos(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))*h/E_0);// ACHTUNG: assuming matrix D is neg. def.
-		   Sin[i]=sin(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))*h/E_0)/(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))); // divided by omega
-		Sindot[i]=sin(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))*h/E_0)*(sqrt(-((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1)))); // multiplied by omega
+		double delta_t=h/E_0;
+		double EigVal=((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1));
+		Cos[i]=cos(sqrt(-EigVal)*delta_t);// ACHTUNG: assuming matrix D is neg. def.
+		   Sin[i]=sin(sqrt(-EigVal)*delta_t)/(sqrt(-EigVal)); // divided by omega
+		Sindot[i]=sin(sqrt(-EigVal)*delta_t)*(sqrt(-EigVal)); // multiplied by omega
 		
 		// Wie kann ich diesen extra loop vermeiden?
 		double norm=0;
@@ -61,9 +65,9 @@ void TridiagToeplitz() {
 			T[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))/norm;
 			
 			// die Spalten der Matrix mit den Faktoren fuer die Zeitentwicklung ergaenzen (also sparsity ausnutzen)
-			T_Cos[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))*Cos[i]/norm;
-			T_Sin[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))*Sin[i]/norm;
-			T_Sindot[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))*Sindot[i]/norm;
+			T_Cos[j][i]=T[j][i]*Cos[i];
+			T_Sin[j][i]=T[j][i]*Sin[i];
+			T_Sindot[j][i]=T[j][i]*Sindot[i];
 		}
 	}
 	
@@ -168,7 +172,6 @@ void System::Oscillate() {
 	wdot_ptr=helpdot_ptr;
 }
 
-// argument files are particle_data, lattice_positions, lattice_velocities
 double* System::Evolve(double* arr) {
 
 	// eine Gittermasse herausgreifen
@@ -239,18 +242,32 @@ TridiagToeplitz();
 
 // Raeumliche Aufloesung Anfangswerte
 const unsigned int resol=1;
-double pos_0s[resol]={9.0};//,60.75646,70.75646,80.75646,90.75646};
+double pos_0s[resol]={50.0};//,60.75646,70.75646,80.75646,90.75646};
 
 // Anzahl Zeitschritte
-const unsigned int steps=10;
-double particle_data_array[5*resol*steps]={}; // Passt das?
+const unsigned int steps=10000;
+double particle_data_array[5*resol*steps]={};
 
 // Anfangswerte Gitter
 double x_0[N]={};
 double xdot_0[N]={};
+double y_0[N]={};
+double ydot_0[N]={};
+
+///*
+ydot_0[n-1]=0.1;//h/sqrt(2*M_PI*M_PI*M*E_0);
+
+	for (int i=0; i<N; i++) {
+		for (int j=0; j<N; j++) {
+			x_0[i]+=T[i][j]*y_0[j];
+			//cout << x_0[i] << endl;
+			xdot_0[i]+=T[i][j]*ydot_0[j];
+		}
+	}
+//*/
 
 // Anfangsgeschwindigkeit Teilchen
-double v_0=10000.0;
+double v_0=0.0;//sqrt(2*E_0/M);
 
 double* ptr;
 ptr=particle_data_array;

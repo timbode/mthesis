@@ -1,6 +1,7 @@
 from numpy import *
 from math import *
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
 only_lattice_positions=[]
 only_lattice_velocities=[]
@@ -35,6 +36,9 @@ for i in xrange(1, len(only_lattice_positions)+1):
 	
 only_lattice_positions=[q for sublist in only_lattice_positions for q in sublist]
 time=[q for sublist in time for q in sublist]
-plt.scatter(only_lattice_positions,time,s=2.0)
-plt.show()
 
+pp=PdfPages('lattice.pdf')		
+plt.scatter(only_lattice_positions,time,s=2.0)
+plt.savefig(pp,format='pdf')
+plt.clf()
+pp.close()

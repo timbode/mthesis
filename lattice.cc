@@ -5,12 +5,28 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=50;
+const unsigned int N=30;
+
+// Energielevel
+const unsigned int n=1;
+
+// Boxlaenge
+const double a=1.0;
+
+// Wirkungsquantum
+const double h=1.0;//6.62606957*1e-34;
+
+// Teilchenmasse
+const double M=1.0;
+
+// Energie
+const double E_0=n*n*h*h/(8*M*a*a);
 
 // Gitterteilchenmasse
-const double m=1.0;
+const double m=1000*M;
 
-const double k=4000.0;
+const double L=a/(N+1);
+const double k=(-1)*(1/((cos(M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));
 
 // Matrizen
 double T[N][N];
@@ -19,6 +35,7 @@ double D[N][N];
 void TridiagToeplitz() {
 	for (int i=0; i<N; i++) {
 		D[i][i]=(2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1);
+		//cout << D[i][i] << endl;
 		
 		// Wie kann ich diesen extra loop vermeiden?
 		double norm=0;
@@ -135,16 +152,36 @@ ofstream only_lattice_positions, only_lattice_velocities;
 only_lattice_positions.open("only_lattice_positions.txt");
 only_lattice_velocities.open("only_lattice_velocities.txt");
 
-// Anfangswerte Gitter
 double x_0[N]={};
-double xdot_0[N]={200.0,0,0,0,0,0,0,0,0,0};
+double xdot_0[N]={};
+double y_0[N]={};
+double ydot_0[N]={};
+
+ydot_0[1]=10.0;
+
+/*
+// Anfangswerte Gitter
+for (int i=0; i<N; i++) {
+	y_0[i]=0.1;
+	ydot_0[i]=0.0;
+}
+*/
+
+	for (int i=0; i<N; i++) {
+		for (int j=0; j<N; j++) {
+			x_0[i]+=T[i][j]*y_0[j];
+			xdot_0[i]+=T[i][j]*ydot_0[j];
+		}
+	}
+
+
 
 // "Frequenz"
-double time_step=0.0001;
+double time_step=0.1;
 
 System sys(time_step, x_0, xdot_0);
 
-int steps=10000;
+int steps=500;
 for (int i=0; i<steps; i++) {
 	sys.Evolve(only_lattice_positions, only_lattice_velocities);
 }
