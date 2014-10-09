@@ -1,5 +1,8 @@
 #include <iostream>
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
+#include <vector>
 #include <math.h>
 
 using namespace std;
@@ -11,7 +14,7 @@ const unsigned int N=300;
 const unsigned int n=1;
 
 // Boxlaenge
-const double a=1.0;
+const double a=1.0; // sollte mit der Wellenlaenge zusammenpassen... Z. B. a= lambda/2=0.5*h/(sqrt(2*M*E_0));
 
 // Wirkungsquantum
 const double h=1.0;//6.62606957*1e-34;
@@ -43,11 +46,11 @@ double R_Cos[N][N];
 double R_Sin[N][N];
 double R_Sindot[N][N];
 
-
 // Diese Funktion laeuft nur einmal, darf deshalb unoekonomisch sein
 void TridiagToeplitz() {
-	cout << k << endl;
-	//cout << 2*M_PI << "   " << sqrt(-((2*k/m)*(cos(M_PI/(N+1)) - 1)))/E_0<< endl;
+	cout << k << '\n';
+	cout << E_0 << '\n';
+	cout << 2*M_PI << "   " << sqrt(-((2*k/m)*(cos(M_PI/(N+1)) - 1)))/E_0<< '\n';
 	for (int i=0; i<N; i++) {
 		double delta_t=h/E_0;
 		double EigVal=((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1));
@@ -242,11 +245,11 @@ TridiagToeplitz();
 
 // Raeumliche Aufloesung Anfangswerte
 const unsigned int resol=1;
-double pos_0s[resol]={50.0};//,60.75646,70.75646,80.75646,90.75646};
+double pos_0s[resol]={50.0};//,60.75646,70.75646,80.75646,99.75646};
 
 // Anzahl Zeitschritte
 const unsigned int steps=10000;
-double particle_data_array[5*resol*steps]={};
+vector<double> particle_data_array(5*resol*steps, 0.0);
 
 // Anfangswerte Gitter
 double x_0[N]={};
@@ -254,23 +257,27 @@ double xdot_0[N]={};
 double y_0[N]={};
 double ydot_0[N]={};
 
-///*
-ydot_0[n-1]=0.1;//h/sqrt(2*M_PI*M_PI*M*E_0);
+ydot_0[n-1]=0.1;//0.005;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
 			x_0[i]+=T[i][j]*y_0[j];
-			//cout << x_0[i] << endl;
 			xdot_0[i]+=T[i][j]*ydot_0[j];
 		}
 	}
-//*/
+
+double energie=0;
+	for (int i=0; i<N; i++) {
+			energie+=0.5*m*xdot_0[i]*xdot_0[i];
+	}
+	
+cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
 
 // Anfangsgeschwindigkeit Teilchen
 double v_0=0.0;//sqrt(2*E_0/M);
 
 double* ptr;
-ptr=particle_data_array;
+ptr=&particle_data_array[0];
 
 for (int ii=0; ii<resol; ii++) {
 	// Anfangsposition Teilchen
@@ -284,28 +291,28 @@ for (int ii=0; ii<resol; ii++) {
 }
 
 // Textdatei anlegen und oeffnen
-ofstream particle_data;
-particle_data.open("particle_data.txt");
-
-particle_data << "# N: " << N << endl;
-particle_data << "# M: " << M << endl;
-particle_data << "# m: " << m << endl;
-particle_data << "# v_0: " << v_0 << endl;
-particle_data << "# L: " << L << endl; 
-particle_data << "# steps: " << steps << endl;  
-particle_data << "# resol: " << resol << endl; 
-particle_data << "# ----------------------------" << endl;
-particle_data << "# ----------------------------" << endl;
+FILE *datei;
+datei=fopen("particle_data.txt", "w");
+if(datei == NULL) exit(-1);
+fprintf(datei, "# N: %u\n", N);
+fprintf(datei, "# M: %f\n", M);
+fprintf(datei, "# m: %f\n", m);
+fprintf(datei, "# v_0: %f\n", v_0);
+fprintf(datei, "# L: %f\n", L);
+fprintf(datei, "# steps: %u\n", steps);
+fprintf(datei, "# resol: %u\n", resol);
+fprintf(datei, "# ----------------------------\n");
+fprintf(datei, "# ----------------------------\n");
 
 // array einlesen
 for (int i=0; i<resol*steps; i++) {
 	for (int j=i*5; j<(i+1)*5; j++) {
-		particle_data << particle_data_array[j] << "   ";
+		fprintf(datei, "%f   ", particle_data_array[j]);
 	}
-	particle_data << endl;
+	fprintf(datei, "\n");
 }
 
-particle_data.close();
+fclose(datei);
 
 return 0;
 }
