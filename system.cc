@@ -6,29 +6,29 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=5000;
+const unsigned int N=500;
 
 // Energielevel
 const unsigned int n=1;
 
 // Boxlaenge
-const double a=1.0; // sollte mit der Wellenlaenge zusammenpassen... Z. B. a= lambda/2=0.5*h/(sqrt(2*M*E_0));
+const double a=1.0;
 
 // Wirkungsquantum
 const double h=1.0;//6.62606957*1e-34;
 
 // Teilchenmasse
-const double M=0.125;
+const double M=1.0;//0.125;
 
 // Energie
 const double E_0=n*n*h*h/(8*M*a*a);
 
 // Gitterteilchenmasse
 // ca. 1000*M < m < 10000*M bei N=300 und n=1
-const double m=1600*M;
+const double m=10000*M;//1600*M;
 
 const double L=a/(N+1);
-const double k=(-1)*(1/((cos(M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));
+const double k=(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));
 
 // Matrizen
 double Cos[N];
@@ -47,7 +47,8 @@ double R_Sindot[N][N];
 // Diese Funktion laeuft nur einmal, darf deshalb unoekonomisch sein
 void TridiagToeplitz() {
 	cout << k << '\n';
-	cout << 2*M_PI << "   " << sqrt(-((2*k/m)*(cos(M_PI/(N+1)) - 1)))/E_0<< '\n';
+	cout << h/E_0 << '\n';
+	cout << 2*M_PI << "   " << sqrt(-((2*k/m)*(cos(n*M_PI/(N+1)) - 1)))/E_0<< '\n';
 	for (int i=0; i<N; i++) {
 		double delta_t=h/E_0;
 		double EigVal=((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1));
@@ -254,7 +255,7 @@ double xdot_0[N]={};
 double y_0[N]={};
 double ydot_0[N]={};
 
-ydot_0[n-1]=0.1;//0.005;
+ydot_0[n-1]=0.01;//0.005;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
