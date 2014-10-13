@@ -4,10 +4,13 @@
 #include <vector>
 #include <math.h>
 
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/io.hpp>
+
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=600;
+const unsigned int N=10;
 
 // Energielevel
 const unsigned int n=1;
@@ -31,19 +34,20 @@ const double m=10000*M;//1600*M;
 const double L=a/(N+1);
 const double k=(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));
 
-// Matrizen
-double Cos[N];
-double Sin[N];
-double Sindot[N];
+// Vektoren und Matrizen
+boost::numeric::ublas::vector<double> Cos (N);
+boost::numeric::ublas::vector<double> Sin (N);
+boost::numeric::ublas::vector<double> Sindot (N);
 
-double T[N][N];
-double T_Cos[N][N];
-double T_Sin[N][N];
-double T_Sindot[N][N];
+boost::numeric::ublas::matrix<double> T (N, N);
+boost::numeric::ublas::matrix<double> T_Cos (N, N);
+boost::numeric::ublas::matrix<double> T_Sin (N, N);
+boost::numeric::ublas::matrix<double> T_Sindot (N, N);
 
-double R_Cos[N][N];
-double R_Sin[N][N];
-double R_Sindot[N][N];
+boost::numeric::ublas::matrix<double> R_Cos (N, N);
+boost::numeric::ublas::matrix<double> R_Sin (N, N);
+boost::numeric::ublas::matrix<double> R_Sindot (N, N);
+
 
 // Diese Funktion laeuft nur einmal
 void TridiagToeplitz() {
@@ -53,9 +57,9 @@ void TridiagToeplitz() {
 	for (int i=0; i<N; i++) {
 		double delta_t=h/E_0;
 		double EigVal=((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1));
-		Cos[i]=cos(sqrt(-EigVal)*delta_t);// ACHTUNG: assuming matrix D is neg. def.
-		   Sin[i]=sin(sqrt(-EigVal)*delta_t)/(sqrt(-EigVal)); // divided by omega
-		Sindot[i]=sin(sqrt(-EigVal)*delta_t)*(sqrt(-EigVal)); // multiplied by omega
+		Cos(i)=cos(sqrt(-EigVal)*delta_t);// ACHTUNG: assuming matrix D is neg. def.
+		   Sin(i)=sin(sqrt(-EigVal)*delta_t)/(sqrt(-EigVal)); // divided by omega
+		Sindot(i)=sin(sqrt(-EigVal)*delta_t)*(sqrt(-EigVal)); // multiplied by omega
 		
 		// Wie kann ich diesen extra loop vermeiden?
 		double norm=0;
@@ -64,52 +68,38 @@ void TridiagToeplitz() {
 		}
 		norm=sqrt(norm);
 		for (int j=0; j<N; j++) {
-			T[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))/norm;
+			T(j,i)=sin((j+1)*M_PI*(i+1)/(N+1))/norm;
 			
 			// die Spalten der Matrix mit den Faktoren fuer die Zeitentwicklung ergaenzen (also sparsity ausnutzen)
-			T_Cos[j][i]=T[j][i]*Cos[i];
-			T_Sin[j][i]=T[j][i]*Sin[i];
-			T_Sindot[j][i]=T[j][i]*Sindot[i];
+			T_Cos(j,i)=T(j,i)*Cos(i);
+			T_Sin(j,i)=T(j,i)*Sin(i);
+			T_Sindot(j,i)=T(j,i)*Sindot(i);
 		}
 	}
 	
+	
 	// Matrizen berechnen, die Startwerte direkt mit Zeitentwicklung verbinden: z. B. T*Cos*T^-1
-	for (int i=0; i<N; i++) {
-		for (int j=0; j<N; j++) {
-			R_Cos[i][j]=0;
-			R_Sin[i][j]=0;
-			R_Sindot[i][j]=0;
-			for (int k=0; k<N; k++) {
-				   R_Cos[i][j]+=   T_Cos[i][k]*T[j][k]; // T transposed...
-				   R_Sin[i][j]+=   T_Sin[i][k]*T[j][k]; // T transposed...
-				R_Sindot[i][j]+=T_Sindot[i][k]*T[j][k]; // T transposed...
-			}
-		}
-	}
+	R_Cos=boost::numeric::ublas::prod(T_Cos,trans(T)); // trans could be omitted (T is sym.)
+	R_Sin=boost::numeric::ublas::prod(T_Sin,trans(T));
+	R_Sindot=boost::numeric::ublas::prod(T_Sindot,trans(T));
 	
 }
 
 class System {
    public:
    	// constructor
-	System(double, double, double*, double*);
+	System(double, double, boost::numeric::ublas::vector<double>, boost::numeric::ublas::vector<double>);
 	
 	// Teilchen
 	double pos;
 	double v;
 	
 	// Gitter
-	double x[N];
-	double xdot[N];
+	boost::numeric::ublas::vector<double> x;
+	boost::numeric::ublas::vector<double> xdot;
 	
-	double w[N];
-	double wdot[N];
-	
-	// pointer
-	double* x_ptr;
-	double* w_ptr;
-	double* xdot_ptr;
-	double* wdot_ptr;
+	boost::numeric::ublas::vector<double> w;
+	boost::numeric::ublas::vector<double> wdot;
 	
 	// Methoden
 	double Collision(double, double, double, double);
@@ -117,24 +107,13 @@ class System {
 	double* Evolve(double*);
 };
 
-// initializing double delta_t, double pos, double v, double* x, double* xdot
-System::System(double pos_0, double v_0, double* x_0, double* xdot_0) {
+// initializing
+System::System(double pos_0, double v_0, boost::numeric::ublas::vector<double> x_0, boost::numeric::ublas::vector<double> xdot_0) {
 	pos=pos_0;
 	v=v_0;
-	
-	for (int i=0; i<N; i++) {
-		x[i]=*x_0;
-		x_0++;
-		
-		xdot[i]=*xdot_0;
-		xdot_0++;
-	}
-	
-	// pointer initialisieren
-	x_ptr=x;
-	xdot_ptr=xdot;
-	w_ptr=w;
-	wdot_ptr=wdot;
+
+	x=x_0;
+	xdot=xdot_0;
 }
 
 double System::Collision(double m1, double v1, double m2, double v2) {
@@ -142,36 +121,10 @@ double System::Collision(double m1, double v1, double m2, double v2) {
 }
 
 void System::Oscillate() {
-	for (int i=0; i<N; i++) {
-		*w_ptr=0;
-		*wdot_ptr=0;
-		for (int j=0; j<N; j++) {
-			*w_ptr+=(R_Cos[i][j]*(*x_ptr) + R_Sin[i][j]*(*xdot_ptr));
-			*wdot_ptr+=(R_Cos[i][j]*(*xdot_ptr) - R_Sindot[i][j]*(*x_ptr));
-			x_ptr++;
-			xdot_ptr++;
-		}
-		w_ptr++;
-		wdot_ptr++;
-		
-		x_ptr=x_ptr-N; // set pointers back to start
-		xdot_ptr=xdot_ptr-N;
-	}
-	w_ptr=w_ptr-N; // set pointers back to start
-	wdot_ptr=wdot_ptr-N;
-
-	// interchange actual and previous values
-	double* help_ptr;
-	double* helpdot_ptr;
-
-	help_ptr=x_ptr;
-	helpdot_ptr=xdot_ptr;
-
-	x_ptr=w_ptr;
-	xdot_ptr=wdot_ptr;
-	
-	w_ptr=help_ptr;
-	wdot_ptr=helpdot_ptr;
+	w=boost::numeric::ublas::prod(R_Cos,x) + boost::numeric::ublas::prod(R_Sin,xdot);
+	wdot=boost::numeric::ublas::prod(R_Cos,xdot) - boost::numeric::ublas::prod(R_Sindot,x);
+	x=w;
+	xdot=wdot;
 }
 
 double* System::Evolve(double* arr) {
@@ -190,9 +143,9 @@ double* System::Evolve(double* arr) {
 	
 	// neue Geschwindigkeiten berechnen
 	double w=v; // temporarily copy v
-	v=this->Collision(M, v, m, *(xdot_ptr + index));
+	v=this->Collision(M, v, m, xdot(index));
 	
-	*(xdot_ptr + index)=this->Collision(m, *(xdot_ptr + index), M, w); // use w
+	xdot(index)=this->Collision(m, xdot(index), M, w); // use w
 
 	// Position updaten
 	pos+=v*h/E_0;
@@ -221,7 +174,7 @@ double* System::Evolve(double* arr) {
 	arr++;
 	*arr=v;
 	arr++;
-	*arr=*(xdot_ptr + index);
+	*arr=xdot(index);
 	arr++;
 	
 	return arr;
@@ -247,29 +200,22 @@ const unsigned int resol=1;
 double pos_0s[resol]={50.0};//,60.75646,70.75646,80.75646,99.75646};
 
 // Anzahl Zeitschritte
-const unsigned int steps=20000;
+const unsigned int steps=1000;
 vector<double> particle_data_array(5*resol*steps, 0.0);
 
 // Anfangswerte Gitter
-double x_0[N]={};
-double xdot_0[N]={};
-double y_0[N]={};
-double ydot_0[N]={};
+boost::numeric::ublas::vector<double> x_0 (N);
+boost::numeric::ublas::vector<double> xdot_0 (N);
+boost::numeric::ublas::vector<double> y_0 (N);
+boost::numeric::ublas::vector<double> ydot_0 (N);
 
-ydot_0[n-1]=0.1;//0.005;
-
-	for (int i=0; i<N; i++) {
-		for (int j=0; j<N; j++) {
-			x_0[i]+=T[i][j]*y_0[j];
-			xdot_0[i]+=T[i][j]*ydot_0[j];
-			
-		}
-		//cout << xdot_0[i] << "\n";
-	}
+ydot_0(n-1)=0.1;//0.005;
+x_0=boost::numeric::ublas::prod(T,y_0);
+xdot_0=boost::numeric::ublas::prod(T,ydot_0);
 
 double energie=0;
 	for (int i=0; i<N; i++) {
-			energie+=0.5*m*xdot_0[i]*xdot_0[i];
+			energie+=0.5*m*xdot_0(i)*xdot_0(i);
 	}
 	
 cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
