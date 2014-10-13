@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <vector>
 #include <math.h>
@@ -6,7 +7,7 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=500;
+const unsigned int N=600;
 
 // Energielevel
 const unsigned int n=1;
@@ -44,9 +45,9 @@ double R_Cos[N][N];
 double R_Sin[N][N];
 double R_Sindot[N][N];
 
-// Diese Funktion laeuft nur einmal, darf deshalb unoekonomisch sein
+// Diese Funktion laeuft nur einmal
 void TridiagToeplitz() {
-	cout << k << '\n';
+	cout << setprecision(10) << k << '\n';
 	cout << h/E_0 << '\n';
 	cout << 2*M_PI << "   " << sqrt(-((2*k/m)*(cos(n*M_PI/(N+1)) - 1)))/E_0<< '\n';
 	for (int i=0; i<N; i++) {
@@ -246,7 +247,7 @@ const unsigned int resol=1;
 double pos_0s[resol]={50.0};//,60.75646,70.75646,80.75646,99.75646};
 
 // Anzahl Zeitschritte
-const unsigned int steps=100000;
+const unsigned int steps=20000;
 vector<double> particle_data_array(5*resol*steps, 0.0);
 
 // Anfangswerte Gitter
@@ -255,13 +256,15 @@ double xdot_0[N]={};
 double y_0[N]={};
 double ydot_0[N]={};
 
-ydot_0[n-1]=0.01;//0.005;
+ydot_0[n-1]=0.1;//0.005;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
 			x_0[i]+=T[i][j]*y_0[j];
 			xdot_0[i]+=T[i][j]*ydot_0[j];
+			
 		}
+		//cout << xdot_0[i] << "\n";
 	}
 
 double energie=0;
