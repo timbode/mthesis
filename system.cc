@@ -74,6 +74,7 @@ void TridiagToeplitz() {
 	}
 	
 	// Matrizen berechnen, die Startwerte direkt mit Zeitentwicklung verbinden: z. B. T*Cos*T^-1
+	//parallel
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
 			R_Cos[i][j]=0;
@@ -247,7 +248,7 @@ const unsigned int resol=1;
 double pos_0s[resol]={50.0};//,60.75646,70.75646,80.75646,99.75646};
 
 // Anzahl Zeitschritte
-const unsigned int steps=400000;
+const unsigned int steps=100000;
 vector<double> particle_data_array(5*resol*steps, 0.0);
 
 // Anfangswerte Gitter
@@ -256,7 +257,7 @@ double xdot_0[N]={};
 double y_0[N]={};
 double ydot_0[N]={};
 
-ydot_0[n-1]=0.005;//0.005;
+ydot_0[n-1]=0.1;//0.005;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {

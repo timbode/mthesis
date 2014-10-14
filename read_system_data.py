@@ -65,19 +65,9 @@ L=float(constants[4][2])
 N=int(constants[0][2])
 steps=int(constants[5][2])
 resol=int(constants[6][2])
-bins=N/2
+bins=100
 bin_width=(N+1)*L/bins
-burn_in=steps/5
-
-mean_velo=[]
-for i in xrange(0,burn_in):
-	#print particle_data[len(particle_data)-i-1]['v']
-	mean_velo.append(particle_data[len(particle_data)-i-1]['v'])
-
-print '-------------------------'
-print max(mean_velo)
-print min(mean_velo)
-print sum([abs(q) for q in mean_velo])/burn_in
+burn_in=10000
 
 loc_prob=[]
 weights=[]
@@ -87,6 +77,7 @@ for j in xrange(0,resol):
 		initial=particle_data[j*steps + burn_in + i-1]['pos']
 		final=particle_data[j*steps + burn_in + i]['pos']
 		weight=1/abs(particle_data[j*steps + burn_in + i]['v'])
+		'''
 		if b < 0:
 			if (b % 2) == 0: # gerade
 				AddInterval(bin_width,0,initial,loc_prob,weight,weights)
@@ -109,16 +100,46 @@ for j in xrange(0,resol):
 				AddInterval(bin_width,final,(N+1)*L,loc_prob,weight,weights)
 				for k in xrange(0,abs(b)-1): # ganze Strecken
 					AddInterval(bin_width,0,(N+1)*L,loc_prob,weight,weights)
-		elif b == 0:
+		'''
+		if b == 0:
 			if initial < final:
 				AddInterval(bin_width,initial,final,loc_prob,weight,weights)
 			else:
 				AddInterval(bin_width,final,initial,loc_prob,weight,weights)
 
-#---------------------------------------------------------------------------------
+
 
 pp=PdfPages('output.pdf')		
+
 plt.hist(loc_prob, bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=0, weights=weights, facecolor='green')
+#plt.ylim(0.0, 0.7e+7)
 plt.savefig(pp,format='pdf')
+
 plt.clf()
+
+liste=particle_data[15550:15570]		
+t_axis=xrange(0, len(liste))
+x_axis=[q['pos'] for q in liste] 
+
+plt.plot(t_axis,x_axis)
+plt.savefig(pp, format='pdf')
+
+plt.clf()
+
+liste=particle_data[15570:15670]		
+t_axis=xrange(0, len(liste))
+x_axis=[q['pos'] for q in liste] 
+
+plt.plot(t_axis,x_axis)
+plt.savefig(pp, format='pdf')
+
+plt.clf()
+
+liste=particle_data[15670:19900]		
+t_axis=xrange(0, len(liste))
+x_axis=[q['pos'] for q in liste] 
+
+plt.plot(t_axis,x_axis)
+plt.savefig(pp, format='pdf')
+
 pp.close()
