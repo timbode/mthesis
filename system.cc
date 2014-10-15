@@ -7,29 +7,29 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=100;
+const unsigned int N=200;
 
 // Energielevel
 const unsigned int n=1;
 
 // Boxlaenge
-const double a=0.01;
+const double a=1.0;
 
 // Wirkungsquantum
-const double h=0.01;//6.62606957*1e-34;
+const double h=1.0;//6.62606957*1e-34;
 
 // Teilchenmasse
 const double M=1.0;//0.125;
 
 // Energie
-const double E_0=n*n*h*h/(8*M*a*a);
+const double E_0=n*n*h*h/(8*M*a*a);//0.125
 
 // Gitterteilchenmasse
 // ca. 1000*M < m < 10000*M bei N=300 und n=1
 const double m=10000*M;//1600*M;
 
 const double L=a/(N+1);
-const double k=0.0001*(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));
+const double k=(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));//6376139.067
 
 // Matrizen
 double Cos[N];
@@ -244,11 +244,11 @@ int main() {
 TridiagToeplitz();
 
 // Raeumliche Aufloesung Anfangswerte
-const unsigned int resol=1;
-double pos_0s[resol]={50.0};//,60.75646,70.75646,80.75646,99.75646};
+const unsigned int resol=2;
+double pos_0s[resol]={20.0, 80.0};//,60.75646,70.75646,80.75646,99.75646};
 
 // Anzahl Zeitschritte
-const unsigned int steps=100000;
+const unsigned int steps=500000;
 vector<double> particle_data_array(5*resol*steps, 0.0);
 
 // Anfangswerte Gitter
@@ -257,7 +257,7 @@ double xdot_0[N]={};
 double y_0[N]={};
 double ydot_0[N]={};
 
-ydot_0[n-1]=0.1;//0.005;
+ydot_0[n-1]=0.005;//0.005;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {

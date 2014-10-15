@@ -67,52 +67,62 @@ steps=int(constants[5][2])
 resol=int(constants[6][2])
 bins=100
 bin_width=(N+1)*L/bins
-burn_in=10000
+burn_in=100000
 
-loc_prob=[]
-weights=[]
+loc_prob1=[]
+weights1=[]
+loc_prob2=[]
+weights2=[]
+loc_prob3=[]
+weights3=[]
 for j in xrange(0,resol):
 	for i in xrange(0,steps - burn_in):
 		b=particle_data[j*steps + burn_in + i]['b']
 		initial=particle_data[j*steps + burn_in + i-1]['pos']
 		final=particle_data[j*steps + burn_in + i]['pos']
 		weight=1/abs(particle_data[j*steps + burn_in + i]['v'])
-		'''
+		'''		
 		if b < 0:
-			if (b % 2) == 0: # gerade
-				AddInterval(bin_width,0,initial,loc_prob,weight,weights)
-				AddInterval(bin_width,final,(N+1)*L,loc_prob,weight,weights)
+			if (b % 2) != 0: # ungerade
+				AddInterval(bin_width,0,initial,loc_prob2,weight,weights2)
+				AddInterval(bin_width,0,final,loc_prob2,weight,weights2)
 				for k in xrange(0,abs(b)-1): # ganze Strecken
-					AddInterval(bin_width,0,(N+1)*L,loc_prob,weight,weights)
-			else: # ungerade
-				AddInterval(bin_width,0,initial,loc_prob,weight,weights)
-				AddInterval(bin_width,0,final,loc_prob,weight,weights)
+					AddInterval(bin_width,0,(N+1)*L,loc_prob2,weight,weights2)
+			
+			else: # gerade
+				AddInterval(bin_width,0,initial,loc_prob2,weight,weights2)
+				AddInterval(bin_width,final,(N+1)*L,loc_prob2,weight,weights2)
 				for k in xrange(0,abs(b)-1): # ganze Strecken
-					AddInterval(bin_width,0,(N+1)*L,loc_prob,weight,weights)
-		elif b > 0:
-			if (b % 2) == 0: # gerade
-				AddInterval(bin_width,initial,(N+1)*L,loc_prob,weight,weights)
-				AddInterval(bin_width,0,final,loc_prob,weight,weights)
-				for k in xrange(0,abs(b)-1): # ganze Strecken
-					AddInterval(bin_width,0,(N+1)*L,loc_prob,weight,weights)
-			else: # ungerade
-				AddInterval(bin_width,initial,(N+1)*L,loc_prob,weight,weights)
-				AddInterval(bin_width,final,(N+1)*L,loc_prob,weight,weights)
-				for k in xrange(0,abs(b)-1): # ganze Strecken
-					AddInterval(bin_width,0,(N+1)*L,loc_prob,weight,weights)
+					AddInterval(bin_width,0,(N+1)*L,loc_prob2,weight,weights2)
+			
 		'''
+		if b > 0:
+			if (b % 2) != 0: # ungerade
+				AddInterval(bin_width,initial,(N+1)*L,loc_prob3,weight,weights3)
+				AddInterval(bin_width,final,(N+1)*L,loc_prob3,weight,weights3)
+				print weight, particle_data[j*steps + burn_in + i]['v']
+				for k in xrange(0,abs(b)-1): # ganze Strecken
+					AddInterval(bin_width,0,(N+1)*L,loc_prob3,weight,weights3)
+			
+			else: # gerade
+				AddInterval(bin_width,initial,(N+1)*L,loc_prob3,weight,weights3)
+				AddInterval(bin_width,0,final,loc_prob3,weight,weights3)
+				for k in xrange(0,abs(b)-1): # ganze Strecken
+					AddInterval(bin_width,0,(N+1)*L,loc_prob3,weight,weights3)
+			
 		if b == 0:
+			print "__________________________", weight, particle_data[j*steps + burn_in + i]['v']
 			if initial < final:
-				AddInterval(bin_width,initial,final,loc_prob,weight,weights)
+				AddInterval(bin_width,initial,final,loc_prob1,weight,weights1)
 			else:
-				AddInterval(bin_width,final,initial,loc_prob,weight,weights)
+				AddInterval(bin_width,final,initial,loc_prob1,weight,weights1)
 
 
 
 pp=PdfPages('output.pdf')		
-
-plt.hist(loc_prob, bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=0, weights=weights, facecolor='green')
-#plt.ylim(0.0, 0.7e+7)
+plt.figure()
+plt.hist([loc_prob1,loc_prob2,loc_prob3], bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=False, weights=[weights1,weights2,weights3])
+#plt.ylim(0.0, 0.7e+5)
 plt.savefig(pp,format='pdf')
 
 plt.clf()
