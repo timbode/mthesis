@@ -27,7 +27,7 @@ const double E_0=n*n*h*h/(8*M*a*a);//0.125
 
 // Gitterteilchenmasse
 // ca. 1000*M < m < 10000*M bei N=300 und n=1
-const double m=10000*M;//1600*M;
+const double m=10000.0*M;//1600*M;
 
 const double L=a/(N+1);
 const double k=(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));//6376139.067
@@ -48,6 +48,7 @@ double R_Sindot[N][N];
 
 // Diese Funktion laeuft nur einmal
 void TridiagToeplitz() {
+	cout << "------------------------------------------------\n";
 	cout << setprecision(10) << k << '\n';
 	cout << h/E_0 << '\n';
 	cout << 2*M_PI << "   " << sqrt(-((2*k/m)*(cos(n*M_PI/(N+1)) - 1)))/E_0<< '\n';
@@ -232,10 +233,10 @@ TridiagToeplitz();
 
 // Raeumliche Aufloesung Anfangswerte
 const unsigned int resol=1;
-double pos_0s[resol]={20.0};//,60.75646,70.75646,80.75646,99.75646};
+double pos_0s[resol]={100.0};//,60.75646,70.75646,80.75646,99.75646};
 
 // Anzahl Zeitschritte
-const unsigned int steps=20000;
+const unsigned int steps=1000000;
 vector<double> particle_data_array(5*resol*steps, 0.0);
 
 // Anfangswerte Gitter
@@ -244,7 +245,7 @@ double xdot_0[N]={};
 double y_0[N]={};
 double ydot_0[N]={};
 
-ydot_0[n-1]=0.1;//0.005;
+ydot_0[n-1]=0.005;//0.005;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
@@ -261,6 +262,7 @@ double energie=0;
 	}
 	
 cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
+cout << "\n";
 
 // Anfangsgeschwindigkeit Teilchen
 double v_0=0.0;//sqrt(2*E_0/M);
@@ -271,6 +273,7 @@ ptr=&particle_data_array[0];
 for (int ii=0; ii<resol; ii++) {
 	// Anfangsposition Teilchen
 	double pos_0=pos_0s[ii]*L;
+	cout << pos_0 << "\n";
 
 	System sys(pos_0, v_0, x_0, xdot_0);
 
