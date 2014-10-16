@@ -1,13 +1,14 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <omp.h>
 #include <vector>
 #include <math.h>
 
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=100;
+const unsigned int N=500;
 
 // Energielevel
 const unsigned int n=1;
@@ -75,6 +76,7 @@ void TridiagToeplitz() {
 	
 	// Matrizen berechnen, die Startwerte direkt mit Zeitentwicklung verbinden: z. B. T*Cos*T^-1
 	//parallel
+	#pragma omp parallel for
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
 			R_Cos[i][j]=0;
@@ -137,6 +139,7 @@ double System::Collision(double m1, double v1, double m2, double v2) {
 }
 
 void System::Oscillate() {
+	#pragma omp parallel for
 	for (int i=0; i<N; i++) {
 		w[i]=0.0;
 		wdot[i]=0.0;
