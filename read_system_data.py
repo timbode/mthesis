@@ -127,14 +127,51 @@ pp=PdfPages('output.pdf')
 # histogram
 fig1=plt.figure()
 plt.hist([loc_prob1,loc_prob2,loc_prob3], bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=False, weights=[weights1,weights2,weights3], stacked=True)
+plt.title('Location probability')
+plt.xlabel('pos')
+plt.ylabel('#')
+plt.grid(True)
 #plt.ylim(0.0, 0.7e+5)
 pp.savefig(fig1)
 #plt.clf()
 
+time_plots-0
+if time_plots==1:
+	#---------------------------------------------------------------------------------
+	# positions
+	y_axis=particle_positions		
+	t_axis=xrange(0, len(y_axis))
+
+	fig2=plt.figure(figsize=(20,5))
+	plt.title('Trajectory')
+	plt.xlabel('t')
+	plt.ylabel('pos')
+	plt.plot(t_axis,y_axis)
+	plt.grid(True)
+	#plt.axis([0,500000,0,1])
+	pp.savefig(fig2)
+
+	#---------------------------------------------------------------------------------
+
+	# velocities
+	y_axis=particle_velocities		
+	t_axis=xrange(0, len(y_axis))
+
+	fig3=plt.figure(figsize=(20,5))
+	plt.title('Velocity (post)')
+	plt.xlabel('t')
+	plt.ylabel('v')
+	plt.plot(t_axis,y_axis)
+	plt.grid(True)
+	#plt.axis([0,500000,0,1])
+	pp.savefig(fig3)
+
+	#---------------------------------------------------------------------------------
+
 #---------------------------------------------------------------------------------
-recursion_plots=0
-start=500000
-end=1200000
+recursion_plots=1
+start=1100000
+end=1150000
 
 if recursion_plots==1:
 	#---------------------------------------------------------------------------------
@@ -144,10 +181,14 @@ if recursion_plots==1:
 	liste1=liste1[start:end]
 	liste2=liste2[start:end]
 
+	fig4=plt.figure()
 	plt.scatter(liste1,liste2,s=0.1)
-	plt.savefig(pp, format='pdf')
-
-	plt.clf()
+	plt.title('Recursion plot - positions of collisions')
+	plt.xlabel('pos_i')
+	plt.ylabel('pos_i+1')
+	plt.axis([0,1,0,1])
+	plt.grid(True)
+	pp.savefig(fig4)
 	#---------------------------------------------------------------------------------
 	# recursion plot velocities
 	liste1=particle_velocities[:-1]
@@ -155,11 +196,13 @@ if recursion_plots==1:
 	liste1=liste1[start:end]
 	liste2=liste2[start:end]
 
+	fig5=plt.figure()
+	plt.title('Recursion plot - velocities (post)')
+	plt.xlabel('v_i')
+	plt.ylabel('v_i+1')
 	plt.scatter(liste1,liste2,s=0.1)
-	plt.savefig(pp, format='pdf')
-
-	plt.clf()
-
+	plt.grid(True)
+	pp.savefig(fig5)
 	#---------------------------------------------------------------------------------
 	# recursion plot lattice velocities
 	liste1=lattice_velocities[:-1]
@@ -167,58 +210,13 @@ if recursion_plots==1:
 	liste1=liste1[start:end]
 	liste2=liste2[start:end]
 
+	fig6=plt.figure()
 	plt.scatter(liste1,liste2,s=0.1)
-	plt.savefig(pp, format='pdf')
-
-	plt.clf()
-
-#---------------------------------------------------------------------------------
-
-# positions
-x_axis=particle_positions		
-t_axis=xrange(0, len(x_axis))
-
-fig2=plt.figure(figsize=(20,5))
-plt.plot(t_axis,x_axis)
-#plt.axis([0,500000,0,1])
-pp.savefig(fig2)
-#plt.clf()
-'''
-x_axis=particle_positions[500000:1000000]		
-t_axis=xrange(0, len(x_axis))
-
-plt.plot(t_axis,x_axis)
-plt.savefig(pp, format='pdf')
-
-plt.clf()
-
-x_axis=particle_positions[1000000:1500000]		
-t_axis=xrange(0, len(x_axis))
-
-plt.plot(t_axis,x_axis)
-plt.savefig(pp, format='pdf')
-
-plt.clf()
-
-x_axis=particle_positions[1500000:2000000]		
-t_axis=xrange(0, len(x_axis))
-
-plt.plot(t_axis,x_axis)
-plt.savefig(pp, format='pdf')
-
-plt.clf()
-
-#---------------------------------------------------------------------------------
-
-# velocities
-x_axis=particle_velocities[start:end]		
-t_axis=xrange(0, len(x_axis))
-
-plt.plot(t_axis,x_axis)
-plt.savefig(pp, format='pdf')
-
-plt.clf()
-'''
+	plt.title('Recursion plot - velocity of current lattice mass (post)')
+	plt.xlabel('xdot_i')
+	plt.ylabel('xdot_i+1')
+	plt.grid(True)
+	pp.savefig(fig6)
 #---------------------------------------------------------------------------------
 
 pp.close()
