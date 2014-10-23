@@ -1,7 +1,10 @@
 from numpy import *
 from math import *
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+
+matplotlib.rcParams["agg.path.chunksize"]=20000
 
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
@@ -27,7 +30,7 @@ bin_width=0
 
 bins=50
 
-burn_in=70000
+burn_in=100000
 
 loc_prob1=[]
 weights1=[]
@@ -35,6 +38,10 @@ loc_prob2=[]
 weights2=[]
 loc_prob3=[]
 weights3=[]
+
+particle_positions=[]
+particle_velocities=[]
+lattice_velocities=[]
 with open('particle_data.txt') as f:
 	counter=0
 	initial=0
@@ -43,15 +50,19 @@ with open('particle_data.txt') as f:
 			strang=line.strip().split()
 			constants.append(strang)
 		else:	
+			string=line.strip().split()
+			particle_positions.append(float(string[1]))
+			particle_velocities.append(float(string[3]))
+			lattice_velocities.append(float(string[4]))
+		
 			if k < (counter*int(constants[5][2]) + burn_in + 9):
 				continue
 				
 			if ((k-9) % int(constants[5][2])) == 0:
 				counter+=1
 				continue
-			print k
+			#print k
 				
-			string=line.strip().split()
 			b=int(string[0])
 			final=float(string[1])
 			v=float(string[3])
@@ -107,10 +118,110 @@ with open('particle_data.txt') as f:
 constants=constants[:-2]
 print constants
 
+#---------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------
+
 pp=PdfPages('output.pdf')		
-plt.figure()
+
+#---------------------------------------------------------------------------------
+# histogram
+fig1=plt.figure()
 plt.hist([loc_prob1,loc_prob2,loc_prob3], bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=False, weights=[weights1,weights2,weights3], stacked=True)
 #plt.ylim(0.0, 0.7e+5)
-plt.savefig(pp,format='pdf')
+pp.savefig(fig1)
+#plt.clf()
+
+#---------------------------------------------------------------------------------
+recursion_plots=0
+start=500000
+end=1200000
+
+if recursion_plots==1:
+	#---------------------------------------------------------------------------------
+	# recursion plot positions
+	liste1=particle_positions[:-1]
+	liste2=particle_positions[1:]
+	liste1=liste1[start:end]
+	liste2=liste2[start:end]
+
+	plt.scatter(liste1,liste2,s=0.1)
+	plt.savefig(pp, format='pdf')
+
+	plt.clf()
+	#---------------------------------------------------------------------------------
+	# recursion plot velocities
+	liste1=particle_velocities[:-1]
+	liste2=particle_velocities[1:]
+	liste1=liste1[start:end]
+	liste2=liste2[start:end]
+
+	plt.scatter(liste1,liste2,s=0.1)
+	plt.savefig(pp, format='pdf')
+
+	plt.clf()
+
+	#---------------------------------------------------------------------------------
+	# recursion plot lattice velocities
+	liste1=lattice_velocities[:-1]
+	liste2=lattice_velocities[1:]
+	liste1=liste1[start:end]
+	liste2=liste2[start:end]
+
+	plt.scatter(liste1,liste2,s=0.1)
+	plt.savefig(pp, format='pdf')
+
+	plt.clf()
+
+#---------------------------------------------------------------------------------
+
+# positions
+x_axis=particle_positions		
+t_axis=xrange(0, len(x_axis))
+
+fig2=plt.figure(figsize=(20,5))
+plt.plot(t_axis,x_axis)
+#plt.axis([0,500000,0,1])
+pp.savefig(fig2)
+#plt.clf()
+'''
+x_axis=particle_positions[500000:1000000]		
+t_axis=xrange(0, len(x_axis))
+
+plt.plot(t_axis,x_axis)
+plt.savefig(pp, format='pdf')
+
 plt.clf()
+
+x_axis=particle_positions[1000000:1500000]		
+t_axis=xrange(0, len(x_axis))
+
+plt.plot(t_axis,x_axis)
+plt.savefig(pp, format='pdf')
+
+plt.clf()
+
+x_axis=particle_positions[1500000:2000000]		
+t_axis=xrange(0, len(x_axis))
+
+plt.plot(t_axis,x_axis)
+plt.savefig(pp, format='pdf')
+
+plt.clf()
+
+#---------------------------------------------------------------------------------
+
+# velocities
+x_axis=particle_velocities[start:end]		
+t_axis=xrange(0, len(x_axis))
+
+plt.plot(t_axis,x_axis)
+plt.savefig(pp, format='pdf')
+
+plt.clf()
+'''
+#---------------------------------------------------------------------------------
+
 pp.close()
+
+#---------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------
