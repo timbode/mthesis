@@ -1,307 +1,315 @@
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <omp.h>
-#include <vector>
-#include <math.h>
+from numpy import *
+from math import *
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
-using namespace std;
+matplotlib.rcParams["agg.path.chunksize"]=20000
 
-// Systemkonstanten
-const unsigned int N=300;
+#---------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------
 
-// Energielevel
-const unsigned int n=1;
+def AddInterval(bin_width,c,d,liste,weight,weights): # Interval [c,d]
+	for k in xrange(int(floor(c/bin_width)),int(ceil(d/bin_width))):
+		liste.append(k*bin_width + bin_width/2)
+		weights.append(weight)
+	return 0
 
-// Boxlaenge
-const double a=1.0;
+#---------------------------------------------------------------------------------
 
-// Wirkungsquantum
-const double h=1.0;//6.62606957*1e-34;
+constants=[]
+'''
+L=float(constants[4][2])
+N=int(constants[0][2])
+steps=int(constants[5][2])
+resol=int(constants[6][2])
+'''
+N=0
+L=0
+bin_width=0
 
-// Teilchenmasse
-const double M=1.0;//0.125;
+bins=50
 
-// Energie
-const double E_0=n*n*h*h/(8*M*a*a);//0.125
+burn_in=100000
 
-// Gitterteilchenmasse
-// ca. 1000*M < m < 10000*M bei N=300 und n=1
-const double m=10000*M;//1600*M;
+loc_prob1=[]
+weights1=[]
+loc_prob2=[]
+weights2=[]
+loc_prob3=[]
+weights3=[]
 
-// Wiederkehrdauer
-const double delta_t=50.0;//5.33434;
-
-const double L=a/(N+1);
-const double k=(N+1)*(N+1)*m*E_0/(2*M*a*a);//(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));//6376139.067
-
-// Matrizen
-vector<double>    Cos(N);
-vector<double>    Sin(N);
-vector<double> Sindot(N);
-
-vector< vector<double> >        T(N,vector<double>(N));
-vector< vector<double> >    T_Cos(N,vector<double>(N));
-vector< vector<double> >    T_Sin(N,vector<double>(N));
-vector< vector<double> > T_Sindot(N,vector<double>(N));
-
-vector< vector<double> >    R_Cos(N,vector<double>(N));
-vector< vector<double> >    R_Sin(N,vector<double>(N));
-vector< vector<double> > R_Sindot(N,vector<double>(N));
-
-// Diese Funktion laeuft nur einmal
-void TridiagToeplitz() {
-	cout << "------------------------------------------------\n";
-	cout << setprecision(10) << k << '\n';
-	cout << h/E_0 << '\n';
-	cout << 2*M_PI << "   " << sqrt(-((2*k/m)*(cos(n*M_PI/(N+1)) - 1)))/E_0<< '\n';
-	for (int i=0; i<N; i++) {
-		//double delta_t=1.0;//h/E_0;
-		double EigVal=((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1));
-		Cos[i]=cos(sqrt(-EigVal)*delta_t);// ACHTUNG: assuming matrix D is neg. def.
-		   Sin[i]=sin(sqrt(-EigVal)*delta_t)/(sqrt(-EigVal)); // divided by omega
-		Sindot[i]=sin(sqrt(-EigVal)*delta_t)*(sqrt(-EigVal)); // multiplied by omega
+particle_positions=[]
+particle_velocities=[]
+lattice_velocities_pre=[]
+#lattice_velocities_post=[]
+with open('particle_data.txt') as f:
+	counter=0
+	initial=0
+	for k, line in enumerate(f):
+		if line.startswith("#"):
+			strang=line.strip().split()
+			constants.append(strang)
+		else:	
+			string=line.strip().split()
+			particle_positions.append(float(string[2])) # 1 for real positions, 2 for indices
+			particle_velocities.append(float(string[3]))
+			lattice_velocities_pre.append(float(string[5]))
+			#lattice_velocities_post.append(float(string[5]))
 		
-		// Wie kann ich diesen extra loop vermeiden?
-		double norm=0;
-		for (int j=0; j<N; j++) {
-			norm+=sin((j+1)*M_PI*(i+1)/(N+1))*sin((j+1)*M_PI*(i+1)/(N+1));
-		}
-		norm=sqrt(norm);
-		for (int j=0; j<N; j++) {
-			T[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))/norm;
+			if k < (counter*int(constants[5][2]) + burn_in + 9):
+				continue
+				
+			if ((k-9) % int(constants[5][2])) == 0:
+				counter+=1
+				continue
+			#print k
+				
+			b=int(string[0])
+			final=float(string[1])
+			v=float(string[3])
 			
-			// die Spalten der Matrix mit den Faktoren fuer die Zeitentwicklung ergaenzen (also sparsity ausnutzen)
-			T_Cos[j][i]=T[j][i]*Cos[i];
-			T_Sin[j][i]=T[j][i]*Sin[i];
-			T_Sindot[j][i]=T[j][i]*Sindot[i];
-		}
-	}
-	
-	// Matrizen berechnen, die Startwerte direkt mit Zeitentwicklung verbinden: z. B. T*Cos*T^-1
-	//parallel
-	#pragma omp parallel for
-	for (int i=0; i<N; i++) {
-		for (int j=0; j<N; j++) {
-			R_Cos[i][j]=0;
-			R_Sin[i][j]=0;
-			R_Sindot[i][j]=0;
-			for (int k=0; k<N; k++) {
-				   R_Cos[i][j]+=   T_Cos[i][k]*T[j][k]; // T transposed...
-				   R_Sin[i][j]+=   T_Sin[i][k]*T[j][k]; // T transposed...
-				R_Sindot[i][j]+=T_Sindot[i][k]*T[j][k]; // T transposed...
-			}
-		}
-	}
-	
-}
-
-class System {
-   public:
-   	// constructor
-	System(double, double, double*, double*);
-	
-	// Teilchen
-	double pos;
-	double v;
-	
-	// Gitter
-	double* x;
-	double* xdot;
-	
-	double* w;
-	double* wdot;
-	
-	// Methoden
-	double Collision(double, double, double, double);
-	void Oscillate();
-	double* Evolve(double*);
-};
-
-// initializing double delta_t, double pos, double v, double* x, double* xdot
-System::System(double pos_0, double v_0, double* x_0, double* xdot_0) {
-	pos=pos_0;
-	v=v_0;
-	
-	x=new double[N];
-	xdot=new double[N];
-	
-	w=new double[N];
-	wdot=new double[N];
-
-	x=x_0;
-	xdot=xdot_0;	
-}
-
-double System::Collision(double m1, double v1, double m2, double v2) {
-	return 2*((m1*v1 + m2*v2)/(m1 + m2)) - v1;
-}
-
-void System::Oscillate() {
-	#pragma omp parallel for
-	for (int i=0; i<N; i++) {
-		w[i]=0.0;
-		wdot[i]=0.0;
-		for (int j=0; j<N; j++) {
-			w[i]+=(R_Cos[i][j]*x[j] + R_Sin[i][j]*xdot[j]);
-			wdot[i]+=(R_Cos[i][j]*xdot[j] - R_Sindot[i][j]*x[j]);
-		}
-	}
-	// interchange actual and previous values
-	double* help_ptr;
-	double* helpdot_ptr;
-
-	help_ptr=x;
-	helpdot_ptr=xdot;
-
-	x=w;
-	xdot=wdot;
-	
-	w=help_ptr;
-	wdot=helpdot_ptr;
-}
-
-double* System::Evolve(double* arr) {
-
-	// eine Gittermasse herausgreifen
-	int index=0;
-	index=round(pos/L) - 1;
-	
-	// Spezialfall Enden
-	if (index==N) { 
-		index-=1; // rechts
-	}
-	if (index==-1) {
-		index+=1; // links
-	}
-	
-	// neue Geschwindigkeiten berechnen
-	double w=v; // temporarily copy v
-	v=this->Collision(M, v, m, xdot[index]);
-	
-	xdot[index]=this->Collision(m, xdot[index], M, w); // use w
-
-	// Position updaten
-	pos+=v*delta_t;//h/E_0;
-	
-	// Gitter weiterentwickeln
-	this->Oscillate(); // sets x and xdot to new values
-	
-	// Reflektion
-	double B=(N+1)*L; // B=a...
-	int b=floor(pos/B);
-	if ((b % 2) == 0) { // gerade
-		pos=pos - b*B;
-		// v bleibt
-	}
-	else { // ungerade
-		pos=B - (pos - b*B);
-		v=-v;
-	}
-	
-	// Position, resultierenden Index, resultierende Geschwindigkeiten des Teilchens und der Gittermasse speichern (v ist dann die Ausgangsgeschw. fuer den folgenden Stoss)
-	*arr=b;
-	arr++;
-	*arr=pos;
-	arr++;
-	*arr=index;
-	arr++;
-	*arr=v;
-	arr++;
-	*arr=xdot[index];
-	arr++;
-	
-	return arr;
-	
-	
-	// Dringend beachten: Das Teilchen fliegt mit der hier gespeicherten Geschw. v vom vorigen Ort zum hier gespeicherten Ort.
-	// Der Index gehoert zum vorigen Ort, weil er vor dem Update der Position gesetzt wird.
-	// b gehoert hingegen zur aktuellen, weil upgedateten Position.
-	
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------------------------------------------------
-
-int main() {
-
-// Matrizen erzeugen
-TridiagToeplitz();
-
-// Raeumliche Aufloesung Anfangswerte
-const unsigned int resol=1;
-double pos_0s[resol]={36.0};//, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571, 572, 573, 574, 575, 576, 577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 591, 592, 593, 594, 595, 596, 597, 598, 599, 600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631, 632, 633, 634, 635, 636, 637, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 651, 652, 653, 654, 655, 656, 657, 658, 659, 660, 661, 662, 663, 664, 665, 666, 667, 668, 669, 670, 671, 672, 673, 674, 675, 676, 677, 678, 679, 680, 681, 682, 683, 684, 685, 686, 687, 688, 689, 690, 691, 692, 693, 694, 695, 696, 697, 698, 699, 700, 701, 702, 703, 704, 705, 706, 707, 708, 709, 710, 711, 712, 713, 714, 715, 716, 717, 718, 719, 720, 721, 722, 723, 724, 725, 726, 727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 819, 820, 821, 822, 823, 824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899, 900, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932, 933, 934, 935, 936, 937, 938, 939, 940, 941, 942, 943, 944, 945, 946, 947, 948, 949, 950, 951, 952, 953, 954, 955, 956, 957, 958, 959, 960, 961, 962, 963, 964, 965, 966, 967, 968, 969, 970, 971, 972, 973, 974, 975, 976, 977, 978, 979, 980, 981, 982, 983, 984, 985, 986, 987, 988, 989, 990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000};
-
-// Anzahl Zeitschritte
-const unsigned int steps=10000000;
-vector<double> particle_data_array(5*resol*steps, 0.0);
-
-// Anfangswerte Gitter
-double x_0[N]={};
-double xdot_0[N]={};
-double y_0[N]={};
-double ydot_0[N]={};
-
-ydot_0[n-1]=0.005;//15.0;//0.1118;//0.005;
-
-	for (int i=0; i<N; i++) {
-		for (int j=0; j<N; j++) {
-			x_0[i]+=T[i][j]*y_0[j];
-			xdot_0[i]+=T[i][j]*ydot_0[j];
+			weight=1/abs(v)
 			
-		}
-		//cout << xdot_0[i] << "\n";
-	}
-
-double energie=0;
-	for (int i=0; i<N; i++) {
-			energie+=0.5*m*xdot_0[i]*xdot_0[i];
-	}
+			if initial == 0:
+				initial=final
+				continue
+				
+			#---------------------------------------------------------------------------------
+			N=int(constants[0][2])
+			L=float(constants[4][2])
+			bin_width=(N+1)*L/bins
+			if b < 0:
+				if (b % 2) != 0: # ungerade
+					AddInterval(bin_width,0,initial,loc_prob2,weight,weights2)
+					AddInterval(bin_width,0,final,loc_prob2,weight,weights2)
+					for k in xrange(0,abs(b)-1): # ganze Strecken
+						AddInterval(bin_width,0,(N+1)*L,loc_prob2,weight,weights2)
+			
+				else: # gerade
+					AddInterval(bin_width,0,initial,loc_prob2,weight,weights2)
+					AddInterval(bin_width,final,(N+1)*L,loc_prob2,weight,weights2)
+					for k in xrange(0,abs(b)-1): # ganze Strecken
+						AddInterval(bin_width,0,(N+1)*L,loc_prob2,weight,weights2)
+			
 	
-cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
-cout << "\n";
+			if b > 0:
+				if (b % 2) != 0: # ungerade
+					AddInterval(bin_width,initial,(N+1)*L,loc_prob3,weight,weights3)
+					AddInterval(bin_width,final,(N+1)*L,loc_prob3,weight,weights3)
+					for k in xrange(0,abs(b)-1): # ganze Strecken
+						AddInterval(bin_width,0,(N+1)*L,loc_prob3,weight,weights3)
+			
+				else: # gerade
+					AddInterval(bin_width,initial,(N+1)*L,loc_prob3,weight,weights3)
+					AddInterval(bin_width,0,final,loc_prob3,weight,weights3)
+					for k in xrange(0,abs(b)-1): # ganze Strecken
+						AddInterval(bin_width,0,(N+1)*L,loc_prob3,weight,weights3)
+			
+			if b == 0:
+				if initial < final:
+					AddInterval(bin_width,initial,final,loc_prob1,weight,weights1)
+				else:
+					AddInterval(bin_width,final,initial,loc_prob1,weight,weights1)
+			#---------------------------------------------------------------------------------
+			
+			# Nicht vergessen:
+			initial=final
+	f.close()
+	
+constants=constants[:-2]
+print constants
 
-// Anfangsgeschwindigkeit Teilchen
-double v_0=0.0;//sqrt(2*E_0/M);
+#---------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------
 
-double* ptr;
-ptr=&particle_data_array[0];
+pp=PdfPages('output.pdf')		
 
-for (int ii=0; ii<resol; ii++) {
-	// Anfangsposition Teilchen
-	double pos_0=pos_0s[ii]*L;
+#---------------------------------------------------------------------------------
+# histogram
+fig1=plt.figure()
+plt.hist([loc_prob1,loc_prob2,loc_prob3], bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=False, weights=[weights1,weights2,weights3], stacked=True)
+plt.title('Location probability')
+plt.xlabel('pos')
+plt.ylabel('#')
+plt.grid(True)
+#plt.ylim(0.0, 0.7e+5)
+pp.savefig(fig1)
+#plt.clf()
 
-	System sys(pos_0, v_0, x_0, xdot_0);
+#---------------------------------------------------------------------------------
+time_plots=1
+time_start=0
+time_end=time_start + 500
+markersize=3
 
-	for (int i=0; i<steps; i++) {
-		ptr=sys.Evolve(ptr);
-	}
-}
+scatter_plots=0
+scatter_start=800000
+scatter_end=900000
+#---------------------------------------------------------------------------------
 
-// Textdatei anlegen und oeffnen
-ofstream particle_data;
-particle_data.open("particle_data.txt");
+if time_plots==1:
+	#---------------------------------------------------------------------------------
+	# positions
+	y_axis=particle_positions[time_start:time_end]	
+	t_axis=xrange(0, len(y_axis))
 
-particle_data << "# N: " << N << '\n';
-particle_data << "# M: " << M << '\n';
-particle_data << "# m: " << m << '\n';
-particle_data << "# v_0: " << v_0 << '\n';
-particle_data << "# L: " << L << '\n'; 
-particle_data << "# steps: " << steps << '\n';  
-particle_data << "# resol: " << resol << '\n'; 
-particle_data << "# ----------------------------" << '\n';
-particle_data << "# ----------------------------" << '\n';
+	fig2=plt.figure(figsize=(40,5))
+	plt.title('Trajectory')
+	plt.xlabel('t')
+	plt.ylabel('pos')
+	plt.plot(t_axis,y_axis,marker='o',markersize=markersize)
+	#plt.axis([time_start,time_end,0,1])
+	plt.grid(True)
+	pp.savefig(fig2)
 
-// array einlesen
-for (int i=0; i<resol*steps; i++) {
-	for (int j=i*5; j<(i+1)*5; j++) {
-		particle_data << particle_data_array[j] << "   ";
-	}
-	particle_data << '\n';
-}
+	#---------------------------------------------------------------------------------
+		# positions
+	y_axis=particle_positions[time_end:2*time_end]	
+	t_axis=xrange(0, len(y_axis))
 
-particle_data.close();
+	fig2=plt.figure(figsize=(40,5))
+	plt.title('Trajectory')
+	plt.xlabel('t')
+	plt.ylabel('pos')
+	plt.plot(t_axis,y_axis,marker='o',markersize=markersize)
+	#plt.axis([time_start,time_end,0,1])
+	plt.grid(True)
+	pp.savefig(fig2)
 
-return 0;
-}
+	#---------------------------------------------------------------------------------
+		# positions
+	y_axis=particle_positions[2*time_end:3*time_end]	
+	t_axis=xrange(0, len(y_axis))
+
+	fig2=plt.figure(figsize=(40,5))
+	plt.title('Trajectory')
+	plt.xlabel('t')
+	plt.ylabel('pos')
+	plt.plot(t_axis,y_axis,marker='o',markersize=markersize)
+	#plt.axis([time_start,time_end,0,1])
+	plt.grid(True)
+	pp.savefig(fig2)
+
+	#---------------------------------------------------------------------------------
+	# velocities
+	y_axis=particle_velocities[time_start:time_end]
+	t_axis=xrange(0, len(y_axis))
+
+	fig3=plt.figure(figsize=(40,5))
+	plt.title('Velocity (post)')
+	plt.xlabel('t')
+	plt.ylabel('v')
+	plt.plot(t_axis,y_axis)
+	plt.grid(True)
+	pp.savefig(fig3)
+
+	#---------------------------------------------------------------------------------
+		# velocities
+	y_axis=particle_velocities[time_end:2*time_end]
+	t_axis=xrange(0, len(y_axis))
+
+	fig3=plt.figure(figsize=(40,5))
+	plt.title('Velocity (post)')
+	plt.xlabel('t')
+	plt.ylabel('v')
+	plt.plot(t_axis,y_axis)
+	plt.grid(True)
+	pp.savefig(fig3)
+
+	#---------------------------------------------------------------------------------
+		# velocities
+	y_axis=particle_velocities[2*time_end:3*time_end]
+	t_axis=xrange(0, len(y_axis))
+
+	fig3=plt.figure(figsize=(40,5))
+	plt.title('Velocity (post)')
+	plt.xlabel('t')
+	plt.ylabel('v')
+	plt.plot(t_axis,y_axis)
+	plt.grid(True)
+	pp.savefig(fig3)
+
+	#---------------------------------------------------------------------------------
+	# lattice velocities pre and post
+	y_axis_1=lattice_velocities_pre[time_start:time_end]	
+	#y_axis_2=lattice_velocities_post
+	t_axis=xrange(0, len(y_axis_1))
+
+	fig3=plt.figure(figsize=(40,5))
+	plt.title('Current lattice velocity')
+	plt.xlabel('t')
+	plt.ylabel('xdot')
+	plt.plot(t_axis,y_axis_1)
+	#plt.plot(t_axis,y_axis_2)
+	plt.grid(True)
+	pp.savefig(fig3)
+
+	#---------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------
+
+if scatter_plots==1:
+	#---------------------------------------------------------------------------------
+	# recursion plot positions
+	liste1=particle_positions[:-1]
+	liste2=particle_positions[1:]
+	liste1=liste1[scatter_start:scatter_end]
+	liste2=liste2[scatter_start:scatter_end]
+
+	fig4=plt.figure()
+	plt.scatter(liste1,liste2,s=0.1)
+	plt.title('Recursion plot - positions of collisions')
+	plt.xlabel('pos_i')
+	plt.ylabel('pos_i+1')
+	plt.axis([0,1,0,1])
+	plt.grid(True)
+	pp.savefig(fig4)
+	#---------------------------------------------------------------------------------
+	# recursion plot velocities
+	liste1=particle_velocities[:-1]
+	liste2=particle_velocities[1:]
+	liste1=liste1[scatter_start:scatter_end]
+	liste2=liste2[scatter_start:scatter_end]
+
+	fig5=plt.figure()
+	plt.title('Recursion plot - velocities (post)')
+	plt.xlabel('v_i')
+	plt.ylabel('v_i+1')
+	plt.scatter(liste1,liste2,s=0.1)
+	plt.grid(True)
+	pp.savefig(fig5)
+	#---------------------------------------------------------------------------------
+	# recursion plot lattice velocities
+	liste1=lattice_velocities_pre[:-1]
+	liste2=lattice_velocities_pre[1:]
+	liste1=liste1[scatter_start:scatter_end]
+	liste2=liste2[scatter_start:scatter_end]
+
+	fig6=plt.figure()
+	plt.scatter(liste1,liste2,s=0.1)
+	plt.title('Recursion plot - velocity of current lattice point (post)')
+	plt.xlabel('xdot_i')
+	plt.ylabel('xdot_i+1')
+	plt.grid(True)
+	pp.savefig(fig6)
+	#---------------------------------------------------------------------------------
+	# scatter plot mixed velocities
+	liste1=particle_velocities
+	liste2=lattice_velocities_pre
+	liste1=liste1[scatter_start:scatter_end]
+	liste2=liste2[scatter_start:scatter_end]
+
+	fig6=plt.figure()
+	plt.scatter(liste1,liste2,s=0.1)
+	plt.title('Scatter plot - velocity of particle (post) and current lattice mass')
+	plt.xlabel('v_i')
+	plt.ylabel('xdot_i')
+	plt.grid(True)
+	pp.savefig(fig6)
+#---------------------------------------------------------------------------------
+
+pp.close()
+
+#---------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------
