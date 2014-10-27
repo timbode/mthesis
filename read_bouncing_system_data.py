@@ -17,21 +17,22 @@ def AddInterval(bin_width,c,d,liste,weight,weights): # Interval [c,d]
 	return 0
 #---------------------------------------------------------------------------------
 constants=[]
-#steps=int(constants[5][2])
-#resol=int(constants[6][2])
+
 N=0
+steps=0
 L=0
 bin_width=0
 
-bins=50
+bins=100
 
-burn_in=2000
+burn_in=100000
 
 loc_prob=[]
 weights=[]
 particle_positions=[]
 particle_velocities=[]
 lattice_velocities_pre=[]
+lines_with_rhombus=0
 with open('bouncing_particle_data.txt') as f:
 	counter=0
 	initial=0
@@ -39,20 +40,23 @@ with open('bouncing_particle_data.txt') as f:
 		if line.startswith("#"):
 			strang=line.strip().split()
 			constants.append(strang)
+			lines_with_rhombus+=1
 		else:	
-			N=int(constants[0][2])
-			L=float(constants[4][2])
-			bin_width=(N+1)*L/bins
+			if k == lines_with_rhombus:
+				N=int(constants[0][2])
+				steps=int(constants[5][2])
+				L=float(constants[4][2])
+				bin_width=(N+1)*L/bins
 		
 			string=line.strip().split()
 			particle_positions.append(L*(float(string[0])+1))
 			particle_velocities.append(float(string[1]))
 			lattice_velocities_pre.append(float(string[2]))
 		
-			if k < (counter*int(constants[5][2]) + burn_in + 9):
+			if k < (counter*steps + burn_in + lines_with_rhombus):
 				continue
 				
-			if ((k-9) % int(constants[5][2])) == 0:
+			if ((k-lines_with_rhombus) % steps) == 0:
 				counter+=1
 				continue
 				
@@ -90,19 +94,19 @@ plt.title('Location probability')
 plt.xlabel('pos')
 plt.ylabel('#')
 plt.grid(True)
-#plt.ylim(0.0, 0.7e+5)
+plt.xlim(0.0, 1.0)
 pp.savefig(fig1)
 #plt.clf()
 
 #---------------------------------------------------------------------------------
 time_plots=1
 time_start=0
-time_end=time_start + 100000
+time_end=time_start + steps
 markersize=3
 
 scatter_plots=1
-scatter_start=50000
-scatter_end=60000
+scatter_start=555000
+scatter_end=565000
 #---------------------------------------------------------------------------------
 
 if time_plots==1:
@@ -116,7 +120,7 @@ if time_plots==1:
 	plt.xlabel('t')
 	plt.ylabel('pos')
 	plt.plot(t_axis,y_axis)#,marker='o',markersize=markersize)
-	#plt.axis([time_start,time_end,0,1])
+	plt.axis([time_start,time_end,0,1])
 	plt.grid(True)
 	pp.savefig(fig2)
 	#---------------------------------------------------------------------------------
@@ -132,17 +136,15 @@ if time_plots==1:
 	plt.grid(True)
 	pp.savefig(fig3)
 	#---------------------------------------------------------------------------------
-	# lattice velocities pre and post
-	y_axis_1=lattice_velocities_pre[time_start:time_end]	
-	#y_axis_2=lattice_velocities_post
-	t_axis=xrange(0, len(y_axis_1))
+	# lattice velocities pre
+	y_axis=lattice_velocities_pre[time_start:time_end]	
+	t_axis=xrange(0, len(y_axis))
 
 	fig3=plt.figure(figsize=(20,5))
 	plt.title('Current lattice velocity')
 	plt.xlabel('t')
 	plt.ylabel('xdot')
-	plt.plot(t_axis,y_axis_1)
-	#plt.plot(t_axis,y_axis_2)
+	plt.plot(t_axis,y_axis)
 	plt.grid(True)
 	pp.savefig(fig3)
 	#---------------------------------------------------------------------------------
@@ -150,21 +152,6 @@ if time_plots==1:
 #---------------------------------------------------------------------------------
 
 if scatter_plots==1:
-	#---------------------------------------------------------------------------------
-	# recursion plot positions
-	liste1=particle_positions[:-1]
-	liste2=particle_positions[1:]
-	liste1=liste1[scatter_start:scatter_end]
-	liste2=liste2[scatter_start:scatter_end]
-
-	fig4=plt.figure()
-	plt.scatter(liste1,liste2,s=0.1)
-	plt.title('Recursion plot - positions of collisions')
-	plt.xlabel('pos_i')
-	plt.ylabel('pos_i+1')
-	plt.axis([0,1,0,1])
-	plt.grid(True)
-	pp.savefig(fig4)
 	#---------------------------------------------------------------------------------
 	# recursion plot velocities
 	liste1=particle_velocities[:-1]

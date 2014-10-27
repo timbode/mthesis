@@ -4,36 +4,28 @@
 #include <omp.h>
 #include <vector>
 #include <math.h>
-#include <cstdlib>
 
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=300;
+const unsigned int N=500; // Anzahl Gittermassen
+const unsigned int steps=1000000; // Anzahl Zeitschritte
+const unsigned int n=1; // Energielevel
+const double a=1.0; // Boxlaenge
+const double L=a/(N+1); // Abstand Gittermassen
+const double h=1.0; // Wirkungsquantum //6.62606957*1e-34;
+const double M=1.0; // Teilchenmasse
+const double m=10000000000*M; // Gitterteilchenmasse
+const double E_0=n*n*h*h/(8*M*a*a); // Energie
+const double k=(N+1)*(N+1)*m*E_0/(2*M*a*a);// Federkonstante // (-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)))
 
-// Energielevel
-const unsigned int n=1;
+double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
+int start_index=400; // Anfangsposition Teilchen
+double excitation=0.00005; // Anfangsanregung Gitter
 
-// Boxlaenge
-const double a=1.0;
-
-// Wirkungsquantum
-const double h=1.0;//6.62606957*1e-34;
-
-// Teilchenmasse
-const double M=1.0;//0.125;
-
-// Energie
-const double E_0=n*n*h*h/(8*M*a*a);//0.125
-
-// Gitterteilchenmasse
-const double m=10000*M;//100000000*M;
-
-// Anzahl Zeitschritte
-const unsigned int steps=100000;
-
-const double L=a/(N+1);
-const double k=(N+1)*(N+1)*m*E_0/(2*M*a*a);//(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)))
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // Vektoren und Matrizen
 vector<double> EigVals(N);
@@ -44,7 +36,6 @@ void TridiagToeplitz() {
 	for (int i=0; i<N; i++) {
 		EigVals[i]=(2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1);
 		
-		// Wie kann ich diesen extra loop vermeiden?
 		double norm=0;
 		for (int j=0; j<N; j++) {
 			norm+=sin((j+1)*M_PI*(i+1)/(N+1))*sin((j+1)*M_PI*(i+1)/(N+1));
@@ -143,19 +134,9 @@ double* System::Evolve(double* arr) {
 	
 	double ww_pre=xdot_index; // save xdot_index before collision
 	xdot_index=this->Collision(m, xdot_index, M, w); // use w
-	double ww_post=xdot_index; // save xdot_index after collision but before oscillation
+	//double ww_post=xdot_index; // save xdot_index after collision but before oscillation
 	
-	/*
-	// ydot updaten (diese Version kostet zwei loops)
-	for (int i=0; i<N; i++) {
-		ydot[i]=0;
-		for (int j=0; j<N; j++) {
-			ydot[i]+=T[j][i]*xdot[j]; //Transponierung aber nicht notwendig: T ist sym.
-		}
-	}
-	*/
-	
-	// ydot updaten (diese Version kostet nur einen loop - mit obiger Version gegenchecken)	
+	// ydot updaten
 	#pragma omp parallel for
 	for (int i=0; i<N; i++) {
 		ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
@@ -206,8 +187,7 @@ double* System::Evolve(double* arr) {
 	
 	return arr;
 	
-	
-	// Dringend beachten: Das Teilchen fliegt mit der hier gespeicherten Geschw. v vom vorigen Ort zum hier gespeicherten Ort.
+	// Beachten: Das Teilchen fliegt mit der hier gespeicherten Geschw. v vom vorigen Ort zum hier gespeicherten Ort.
 	
 }
 
@@ -222,9 +202,12 @@ TridiagToeplitz();
 
 // Raeumliche Aufloesung Anfangswerte
 const unsigned int resol=1;
-int index_0s[resol]={36}; // integers...
+int index_0s[resol]={start_index}; // integers...
 
-vector<double> particle_data_array(3*resol*steps, 0.0); // 3=number of elements in each file line
+
+// number of elements in each file line
+int neefl=3;
+vector<double> particle_data_array(neefl*resol*steps, 0.0); // neefl=number of elements in each file line
 
 // Anfangswerte Gitter
 double x_0[N]={};
@@ -232,7 +215,7 @@ double xdot_0[N]={};
 double y_0[N]={};
 double ydot_0[N]={};
 
-ydot_0[n-1]=0.005;//0.01;//0.1118;//0.005;
+ydot_0[n-1]=excitation;//0.01;//0.1118;//0.005;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
@@ -250,9 +233,6 @@ double energie=0;
 	
 cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
 cout << "\n";
-
-// Anfangsgeschwindigkeit Teilchen
-double v_0=0.0;
 
 // Anfangsgeschwindigkeit erste Gittermasse
 double xdot_index_0=0.0;
@@ -291,7 +271,7 @@ particle_data << "# ----------------------------" << '\n';
 
 // array einlesen
 for (int i=0; i<resol*steps; i++) {
-	for (int j=i*3; j<(i+1)*3; j++) { // 3=number of elements in each file line
+	for (int j=i*neefl; j<(i+1)*neefl; j++) { // neefl=number of elements in each file line
 		particle_data << particle_data_array[j] << '\t'; // possibly use << setw(15) or so
 	}
 	particle_data << '\n';
