@@ -9,7 +9,7 @@ using namespace std;
 
 // Systemkonstanten
 const unsigned int N=300; // Anzahl Gittermassen
-const unsigned int steps=100000; // Anzahl Zeitschritte
+const unsigned int steps=1000000; // Anzahl Zeitschritte
 const unsigned int n=1; // Energielevel
 const double a=1.0; // Boxlaenge
 const double L=a/(N+1); // Abstand Gittermassen
@@ -23,38 +23,15 @@ double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
 int start_index=36.0; // Anfangsposition Teilchen
 double excitation=0.005; // Anfangsanregung Gitter
 
-// Wiederkehrdauer
-const double delta_t=50.0;//4.5;//506.0;// mind. t=16+2=18
+// Vektoren und Matrizen
+vector<double> EigVals(N);
+vector< vector<double> > T(N,vector<double>(N));
 
-// Matrizen
-vector<double>    Cos(N);
-vector<double>    Sin(N);
-vector<double> Sindot(N);
-
-vector< vector<double> >        T(N,vector<double>(N));
-vector< vector<double> >    T_Cos(N,vector<double>(N));
-vector< vector<double> >    T_Sin(N,vector<double>(N));
-vector< vector<double> > T_Sindot(N,vector<double>(N));
-
-vector< vector<double> >    R_Cos(N,vector<double>(N));
-vector< vector<double> >    R_Sin(N,vector<double>(N));
-vector< vector<double> > R_Sindot(N,vector<double>(N));
-
-// Diese Funktion laeuft nur einmal
+// this function runs only once
 void TridiagToeplitz() {
-	cout << "------------------------------------------------\n";
-	cout << setprecision(10) << k << '\n';
-	cout << h/E_0 << '\n';
-	cout << 2*M_PI << "   " << sqrt(-((2*k/m)*(cos(n*M_PI/(N+1)) - 1)))/E_0 << "   " << (sqrt(-((2*k/m)*(cos(n*M_PI/(N+1)) - 1)))*delta_t)/(2*M_PI) << '\n';
 	for (int i=0; i<N; i++) {
-		//double delta_t=1.0;//h/E_0;
-		double EigVal=((2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1));
-		//cout << i << "th " << "Eigenvalue: " << sqrt(-EigVal) << '\n';
-		Cos[i]=cos(sqrt(-EigVal)*delta_t);// ACHTUNG: assuming matrix D is neg. def.
-		   Sin[i]=sin(sqrt(-EigVal)*delta_t)/(sqrt(-EigVal)); // divided by omega
-		Sindot[i]=sin(sqrt(-EigVal)*delta_t)*(sqrt(-EigVal)); // multiplied by omega
+		EigVals[i]=(2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1);
 		
-		// Wie kann ich diesen extra loop vermeiden?
 		double norm=0;
 		for (int j=0; j<N; j++) {
 			norm+=sin((j+1)*M_PI*(i+1)/(N+1))*sin((j+1)*M_PI*(i+1)/(N+1));
@@ -62,27 +39,6 @@ void TridiagToeplitz() {
 		norm=sqrt(norm);
 		for (int j=0; j<N; j++) {
 			T[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))/norm;
-			
-			// die Spalten der Matrix mit den Faktoren fuer die Zeitentwicklung ergaenzen (also sparsity ausnutzen)
-			T_Cos[j][i]=T[j][i]*Cos[i];
-			T_Sin[j][i]=T[j][i]*Sin[i];
-			T_Sindot[j][i]=T[j][i]*Sindot[i];
-		}
-	}
-	
-	// Matrizen berechnen, die Startwerte direkt mit Zeitentwicklung verbinden: z. B. T*Cos*T^-1
-	//parallel
-	#pragma omp parallel for
-	for (int i=0; i<N; i++) {
-		for (int j=0; j<N; j++) {
-			R_Cos[i][j]=0;
-			R_Sin[i][j]=0;
-			R_Sindot[i][j]=0;
-			for (int k=0; k<N; k++) {
-				   R_Cos[i][j]+=   T_Cos[i][k]*T[j][k]; // T transposed...
-				   R_Sin[i][j]+=   T_Sin[i][k]*T[j][k]; // T transposed...
-				R_Sindot[i][j]+=T_Sindot[i][k]*T[j][k]; // T transposed...
-			}
 		}
 	}
 	
@@ -91,38 +47,47 @@ void TridiagToeplitz() {
 class System {
    public:
    	// constructor
-	System(double, double, double*, double*);
+	System(double, double, double, double*, double*);
 	
 	// Teilchen
 	double pos;
 	double v;
 	
+	// Zeit
+	double delta_t;
+	
+	// aktuelle Gittergeschw.
+	double xdot_index;
+	
 	// Gitter
-	double* x;
-	double* xdot;
+	double* y;
+	double* ydot;
 	
 	double* w;
 	double* wdot;
 	
 	// Methoden
 	double Collision(double, double, double, double);
-	void Oscillate();
+	double Oscillate(int, double);
 	double* Evolve(double*);
 };
 
-// initializing double delta_t, double pos, double v, double* x, double* xdot
-System::System(double pos_0, double v_0, double* x_0, double* xdot_0) {
+// initializing
+System::System(double pos_0, double v_0, double xdot_index_0, double* y_0, double* ydot_0) {
 	pos=pos_0;
 	v=v_0;
 	
-	x=new double[N];
-	xdot=new double[N];
+	delta_t=50.0; // mind. 16+2=18
+	xdot_index=xdot_index_0;
+	
+	y=new double[N];
+	ydot=new double[N];
 	
 	w=new double[N];
 	wdot=new double[N];
 
-	x=x_0;
-	xdot=xdot_0;	
+	y=y_0;
+	ydot=ydot_0;	
 }
 
 double System::Collision(double m1, double v1, double m2, double v2) {
@@ -130,57 +95,54 @@ double System::Collision(double m1, double v1, double m2, double v2) {
 	// return 2*v2 - v1;
 }
 
-void System::Oscillate() {
-	#pragma omp parallel for
+double System::Oscillate(int ind, double del_t) {
+	double next=0.0;
+	#pragma omp parallel for ordered reduction(+:next)
 	for (int i=0; i<N; i++) {
-		w[i]=0.0;
-		wdot[i]=0.0;
-		for (int j=0; j<N; j++) {
-			w[i]+=(R_Cos[i][j]*x[j] + R_Sin[i][j]*xdot[j]);
-			wdot[i]+=(R_Cos[i][j]*xdot[j] - R_Sindot[i][j]*x[j]);
-		}
+		w[i]=y[i]*cos(sqrt(-EigVals[i])*del_t) + (ydot[i]/(sqrt(-EigVals[i])))*sin(sqrt(-EigVals[i])*del_t); // Watch out: assuming EigVals are negative
+		wdot[i]=ydot[i]*cos(sqrt(-EigVals[i])*del_t) - y[i]*(sqrt(-EigVals[i]))*sin(sqrt(-EigVals[i])*del_t);
+		
+		// compute next lattice velocity
+	#pragma ordered
+		next+=T[ind][i]*wdot[i];
 	}
-	// interchange actual and previous values
+	
+	// interchange up-to-date and previous values
 	double* help_ptr;
 	double* helpdot_ptr;
 
-	help_ptr=x;
-	helpdot_ptr=xdot;
+	help_ptr=y;
+	helpdot_ptr=ydot;
 
-	x=w;
-	xdot=wdot;
+	y=w;
+	ydot=wdot;
 	
 	w=help_ptr;
 	wdot=helpdot_ptr;
+	
+	return next;
 }
 
 double* System::Evolve(double* arr) {
 
-	// eine Gittermasse herausgreifen
-	int index=0;
-	index=round(pos/L) - 1;
-	
-	// Spezialfall Enden
-	if (index==N) { 
-		index-=1; // rechts
-	}
-	if (index==-1) {
-		index+=1; // links
-	}
-	
 	// neue Geschwindigkeiten berechnen
 	double w=v; // temporarily copy v
-	v=this->Collision(M, v, m, xdot[index]);
+	v=this->Collision(M, v, m, xdot_index);
 	
-	double ww_pre=xdot[index]; // save xdot[index] before collision
-	xdot[index]=this->Collision(m, xdot[index], M, w); // use w
-	double ww_post=xdot[index]; // save xdot[index] after collision but before oscillation
-
+	double ww_pre=xdot_index; // save xdot_index before collision
+	xdot_index=this->Collision(m, xdot_index, M, w); // use w
+	double ww_post=xdot_index; // save xdot_index after collision but before oscillation
+	
+	// ydot updaten
+	int index=round(pos/L) - 1;
+	#pragma omp parallel for
+	for (int i=0; i<N; i++) {
+		// WATCH OUT: the index of T and the one of xdot are not the same here...
+		ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
+	}
+	
 	// Position updaten
-	pos+=v*delta_t;//h/E_0;
-	
-	// Gitter weiterentwickeln
-	this->Oscillate(); // sets x and xdot to new values
+	pos+=v*delta_t;
 	
 	// Reflektion
 	double B=(N+1)*L; // B=a...
@@ -193,6 +155,20 @@ double* System::Evolve(double* arr) {
 		pos=B - (pos - b*B);
 		v=-v;
 	}
+	
+	// Index updaten
+	index=round(pos/L) - 1;
+	
+	// Spezialfall Enden
+	if (index==N) { 
+		index-=1; // rechts
+	}
+	if (index==-1) {
+		index+=1; // links
+	}
+	
+	// Gitter weiterentwickeln
+	xdot_index=this->Oscillate(index, delta_t);
 	
 	// Position, resultierenden Index, (resultierende) Geschwindigkeiten des Teilchens und der Gittermasse speichern (v ist dann die Ausgangsgeschw. fuer den folgenden Stoss)
 	*arr=b;
@@ -257,16 +233,26 @@ double energie=0;
 cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
 cout << "\n";
 
+// Anfangsgeschwindigkeit erste Gittermasse
+double xdot_index_0=0.0;
+
 double* ptr;
 ptr=&particle_data_array[0];
 
-for (int ii=0; ii<resol; ii++) {
+for (int i=0; i<resol; i++) {
 	// Anfangsposition Teilchen
-	double pos_0=pos_0s[ii]*L;
+	double pos_0=pos_0s[i]*L;
+	
+	// Anfangsindex Teilchen
+	int index_0=round(pos_0/L) - 1;
+	
+	for (int j=0; j<N; j++) {
+		xdot_index_0+=T[index_0][j]*ydot_0[j];
+	}
 
-	System sys(pos_0, v_0, x_0, xdot_0);
+	System sys(pos_0, v_0, xdot_index_0, y_0, ydot_0);
 
-	for (int i=0; i<steps; i++) {
+	for (int k=0; k<steps; k++) {
 		ptr=sys.Evolve(ptr);
 	}
 }
@@ -288,7 +274,7 @@ particle_data << "# ----------------------------" << '\n';
 // array einlesen
 for (int i=0; i<resol*steps; i++) {
 	for (int j=i*6; j<(i+1)*6; j++) { // 6=number of elements in each file line
-		particle_data << particle_data_array[j] << '\t'; // possibly use << setw(15) or so
+		particle_data << setprecision(15) << particle_data_array[j] << '\t'; // possibly use << setw(15) or so
 	}
 	particle_data << '\n';
 }
