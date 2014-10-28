@@ -8,34 +8,23 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=500;
+const unsigned int N=300; // Anzahl Gittermassen
+const unsigned int steps=100000; // Anzahl Zeitschritte
+const unsigned int n=1; // Energielevel
+const double a=1.0; // Boxlaenge
+const double L=a/(N+1); // Abstand Gittermassen
+const double h=1.0; // Wirkungsquantum //6.62606957*1e-34;
+const double M=1.0; // Teilchenmasse
+const double m=1e+4*M; // Gitterteilchenmasse
+const double E_0=n*n*h*h/(8*M*a*a); // Energie
+const double k=(N+1)*(N+1)*m*E_0/(2*M*a*a);// Federkonstante // (-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)))
 
-// Energielevel
-const unsigned int n=1;
-
-// Boxlaenge
-const double a=1.0;
-
-// Wirkungsquantum
-const double h=1.0;//6.62606957*1e-34;
-
-// Teilchenmasse
-const double M=1.0;//0.125;
-
-// Energie
-const double E_0=n*n*h*h/(8*M*a*a);//0.125
-
-// Gitterteilchenmasse
-const double m=10000*M;//100000000*M;
-
-// Anzahl Zeitschritte
-const unsigned int steps=1000000;
+double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
+int start_index=36.0; // Anfangsposition Teilchen
+double excitation=0.005; // Anfangsanregung Gitter
 
 // Wiederkehrdauer
-const double delta_t=34.0;//506.0;// mind. t=16+2=18
-
-const double L=a/(N+1);
-const double k=(N+1)*(N+1)*m*E_0/(2*M*a*a);//(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)))
+const double delta_t=50.0;//4.5;//506.0;// mind. t=16+2=18
 
 // Matrizen
 vector<double>    Cos(N);
@@ -239,7 +228,7 @@ TridiagToeplitz();
 
 // Raeumliche Aufloesung Anfangswerte
 const unsigned int resol=1;
-double pos_0s[resol]={36.0};
+double pos_0s[resol]={start_index};
 
 vector<double> particle_data_array(6*resol*steps, 0.0); // 6=number of elements in each file line
 
@@ -249,7 +238,7 @@ double xdot_0[N]={};
 double y_0[N]={};
 double ydot_0[N]={};
 
-ydot_0[n-1]=0.005;//15.0;//0.1118;//0.005;
+ydot_0[n-1]=excitation;//15.0;//0.1118;//0.005;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
@@ -267,9 +256,6 @@ double energie=0;
 	
 cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
 cout << "\n";
-
-// Anfangsgeschwindigkeit Teilchen
-double v_0=0.0;//sqrt(2*E_0/M);
 
 double* ptr;
 ptr=&particle_data_array[0];

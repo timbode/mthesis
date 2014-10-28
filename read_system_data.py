@@ -1,6 +1,8 @@
 from numpy import *
 from math import *
 import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -30,7 +32,7 @@ bin_width=0
 
 bins=50
 
-burn_in=100000
+burn_in=10000
 
 loc_prob1=[]
 weights1=[]
@@ -138,14 +140,14 @@ pp.savefig(fig1)
 #plt.clf()
 
 #---------------------------------------------------------------------------------
-time_plots=1
+time_plots=0
 time_start=0
-time_end=time_start + 500
+time_end=time_start + 1000000
 markersize=3
 
 scatter_plots=0
-scatter_start=800000
-scatter_end=900000
+scatter_start=2800000
+scatter_end=2900000
 #---------------------------------------------------------------------------------
 
 if time_plots==1:
@@ -158,11 +160,11 @@ if time_plots==1:
 	plt.title('Trajectory')
 	plt.xlabel('t')
 	plt.ylabel('pos')
-	plt.plot(t_axis,y_axis,marker='o',markersize=markersize)
+	plt.plot(t_axis,y_axis)#,marker='o',markersize=markersize)
 	#plt.axis([time_start,time_end,0,1])
 	plt.grid(True)
 	pp.savefig(fig2)
-
+	'''
 	#---------------------------------------------------------------------------------
 		# positions
 	y_axis=particle_positions[time_end:2*time_end]	
@@ -190,7 +192,7 @@ if time_plots==1:
 	#plt.axis([time_start,time_end,0,1])
 	plt.grid(True)
 	pp.savefig(fig2)
-
+	'''
 	#---------------------------------------------------------------------------------
 	# velocities
 	y_axis=particle_velocities[time_start:time_end]
@@ -203,7 +205,7 @@ if time_plots==1:
 	plt.plot(t_axis,y_axis)
 	plt.grid(True)
 	pp.savefig(fig3)
-
+	'''
 	#---------------------------------------------------------------------------------
 		# velocities
 	y_axis=particle_velocities[time_end:2*time_end]
@@ -229,7 +231,7 @@ if time_plots==1:
 	plt.plot(t_axis,y_axis)
 	plt.grid(True)
 	pp.savefig(fig3)
-
+	'''
 	#---------------------------------------------------------------------------------
 	# lattice velocities pre and post
 	y_axis_1=lattice_velocities_pre[time_start:time_end]	
