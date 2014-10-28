@@ -23,9 +23,7 @@ steps=0
 L=0
 bin_width=0
 
-bins=100
-
-burn_in=100000
+bins=50
 
 loc_prob=[]
 weights=[]
@@ -47,6 +45,7 @@ with open('bouncing_particle_data.txt') as f:
 				steps=int(constants[5][2])
 				L=float(constants[4][2])
 				bin_width=(N+1)*L/bins
+				burn_in=steps/5
 		
 			string=line.strip().split()
 			particle_positions.append(L*(float(string[0])+1))
@@ -104,7 +103,7 @@ time_start=0
 time_end=time_start + steps
 markersize=3
 
-scatter_plots=1
+scatter_plots=0
 scatter_start=555000
 scatter_end=565000
 #---------------------------------------------------------------------------------

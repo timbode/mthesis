@@ -9,19 +9,19 @@ using namespace std;
 
 // Systemkonstanten
 const unsigned int N=500; // Anzahl Gittermassen
-const unsigned int steps=1000000; // Anzahl Zeitschritte
+const unsigned int steps=10000000; // Anzahl Zeitschritte
 const unsigned int n=1; // Energielevel
 const double a=1.0; // Boxlaenge
 const double L=a/(N+1); // Abstand Gittermassen
 const double h=1.0; // Wirkungsquantum //6.62606957*1e-34;
 const double M=1.0; // Teilchenmasse
-const double m=10000000000*M; // Gitterteilchenmasse
+const double m=1e+10*M; // Gitterteilchenmasse
 const double E_0=n*n*h*h/(8*M*a*a); // Energie
 const double k=(N+1)*(N+1)*m*E_0/(2*M*a*a);// Federkonstante // (-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)))
 
 double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
-int start_index=400; // Anfangsposition Teilchen
-double excitation=0.00005; // Anfangsanregung Gitter
+int start_index=355; // Anfangsposition Teilchen
+double excitation=0.002631; // Anfangsanregung Gitter
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -101,12 +101,13 @@ double System::Collision(double m1, double v1, double m2, double v2) {
 
 double System::Oscillate(int ind, double del_t) {
 	double next=0.0;
-	//#pragma omp parallel for reduction(+:next)
+	#pragma omp parallel for ordered reduction(+:next)
 	for (int i=0; i<N; i++) {
 		w[i]=y[i]*cos(sqrt(-EigVals[i])*del_t) + (ydot[i]/(sqrt(-EigVals[i])))*sin(sqrt(-EigVals[i])*del_t); // Watch out: assuming EigVals are negative
 		wdot[i]=ydot[i]*cos(sqrt(-EigVals[i])*del_t) - y[i]*(sqrt(-EigVals[i]))*sin(sqrt(-EigVals[i])*del_t);
 		
 		// compute next lattice velocity
+	#pragma ordered
 		next+=T[ind][i]*wdot[i];
 	}
 	
@@ -217,14 +218,22 @@ double ydot_0[N]={};
 
 ydot_0[n-1]=excitation;//0.01;//0.1118;//0.005;
 
-	for (int i=0; i<N; i++) {
-		for (int j=0; j<N; j++) {
-			x_0[i]+=T[i][j]*y_0[j];
-			xdot_0[i]+=T[i][j]*ydot_0[j];
-			
-		}
-		//cout << xdot_0[i] << "\n";
+for (int i=0; i<N; i++) {
+	for (int j=0; j<N; j++) {
+		x_0[i]+=T[i][j]*y_0[j];
+		xdot_0[i]+=T[i][j]*ydot_0[j];
 	}
+	//cout << xdot_0[i]*xdot_0[i]/L << "\n";
+}
+int kurz=N/2 - 1;
+cout << xdot_0[kurz]*xdot_0[kurz]/L << "\n";
+cout << xdot_0[kurz+1]*xdot_0[kurz+1]/L << "\n";
+cout << xdot_0[kurz+2]*xdot_0[kurz+2]/L << "\n";
+cout << "----------" << "\n";
+cout << L/xdot_0[kurz] << "\n";
+cout << L/xdot_0[kurz+1] << "\n";
+cout << L/xdot_0[kurz+2] << "\n";
+
 
 double energie=0;
 	for (int i=0; i<N; i++) {
