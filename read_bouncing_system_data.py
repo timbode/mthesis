@@ -1,7 +1,7 @@
 from numpy import *
 from math import *
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -10,54 +10,50 @@ matplotlib.rcParams["agg.path.chunksize"]=20000
 
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
+
 def AddInterval(bin_width,c,d,liste,weight,weights): # Interval [c,d]
 	for k in xrange(int(floor(c/bin_width)),int(ceil(d/bin_width))):
 		liste.append(k*bin_width + bin_width/2)
 		weights.append(weight)
 	return 0
-#---------------------------------------------------------------------------------
-constants=[]
 
-N=0
-steps=0
-L=0
-bin_width=0
+#---------------------------------------------------------------------------------
+
+constants=[]
+with open('data/bouncing_system_info.txt') as f:
+	for line in f:
+		if line.startswith('#'):
+			strang=line.strip().split()
+			constants.append(strang)
+	f.close()
+		
+N=int(constants[0][2])
+L=float(constants[4][2])
+steps=int(constants[5][2])
+resol=int(constants[6][2])
+print constants
 
 bins=50
+bin_width=(N+1)*L/bins
+burn_in=10000
 
 loc_prob=[]
 weights=[]
+
 particle_positions=[]
 particle_velocities=[]
 lattice_velocities_pre=[]
-lines_with_rhombus=0
-with open('bouncing_particle_data.txt') as f:
-	counter=0
-	initial=0
-	for k, line in enumerate(f):
-		if line.startswith("#"):
-			strang=line.strip().split()
-			constants.append(strang)
-			lines_with_rhombus+=1
-		else:	
-			if k == lines_with_rhombus:
-				N=int(constants[0][2])
-				steps=int(constants[5][2])
-				L=float(constants[4][2])
-				bin_width=(N+1)*L/bins
-				burn_in=steps/5
-		
+for i in xrange(0,resol):
+	with open('data/bouncing_particle_data_'+str(i)+'.txt') as f:
+		initial=0
+		for j, line in enumerate(f):
 			string=line.strip().split()
 			particle_positions.append(L*(float(string[0])+1))
 			particle_velocities.append(float(string[1]))
 			lattice_velocities_pre.append(float(string[2]))
-		
-			if k < (counter*steps + burn_in + lines_with_rhombus):
-				continue
-				
-			if ((k-lines_with_rhombus) % steps) == 0:
-				counter+=1
-				continue
+			
+			if j < burn_in:
+				continue		
 				
 			final=L*(int(string[0])+1)
 			v=float(string[1])
@@ -77,13 +73,10 @@ with open('bouncing_particle_data.txt') as f:
 			initial=final
 	f.close()
 	
-constants=constants[:-2]
-print constants
-
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 
-pp=PdfPages('output.pdf')		
+pp=PdfPages('data/bouncing_output.pdf')		
 
 #---------------------------------------------------------------------------------
 # histogram
@@ -100,7 +93,7 @@ pp.savefig(fig1)
 #---------------------------------------------------------------------------------
 time_plots=1
 time_start=0
-time_end=time_start + steps
+time_end=time_start + 100000
 markersize=3
 
 scatter_plots=0
@@ -119,7 +112,7 @@ if time_plots==1:
 	plt.xlabel('t')
 	plt.ylabel('pos')
 	plt.plot(t_axis,y_axis)#,marker='o',markersize=markersize)
-	plt.axis([time_start,time_end,0,1])
+	#plt.axis([time_start,time_end,0,1])
 	plt.grid(True)
 	pp.savefig(fig2)
 	#---------------------------------------------------------------------------------

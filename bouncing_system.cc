@@ -1,6 +1,9 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
+#include <string>
+#include <cstring>
 #include <omp.h>
 #include <vector>
 #include <math.h>
@@ -8,20 +11,20 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=500; // Anzahl Gittermassen
-const unsigned int steps=10000000; // Anzahl Zeitschritte
+const unsigned int N=5000; // Anzahl Gittermassen
+const unsigned int steps=1000000; // Anzahl Zeitschritte
 const unsigned int n=1; // Energielevel
 const double a=1.0; // Boxlaenge
 const double L=a/(N+1); // Abstand Gittermassen
-const double h=1.0; // Wirkungsquantum //6.62606957*1e-34;
 const double M=1.0; // Teilchenmasse
 const double m=1e+10*M; // Gitterteilchenmasse
-const double E_0=n*n*h*h/(8*M*a*a); // Energie
-const double k=(N+1)*(N+1)*m*E_0/(2*M*a*a);// Federkonstante // (-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)))
+const double k=1e+20;// Federkonstante
 
 double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
-int start_index=355; // Anfangsposition Teilchen
-double excitation=0.002631; // Anfangsanregung Gitter
+int start_index=2555; // Anfangsposition Teilchen
+const unsigned int resol=1; // Raeumliche Aufloesung Anfangswerte
+int index_0s[resol]={start_index};//,4500,500,1000,1500}; // integers...
+double excitation=0.014; // Anfangsanregung Gitter
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -35,6 +38,7 @@ vector< vector<double> > T(N,vector<double>(N));
 void TridiagToeplitz() {
 	for (int i=0; i<N; i++) {
 		EigVals[i]=(2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1);
+		if (i == n) cout << "Periode: " << 2*M_PI/sqrt(-EigVals[i]) << '\n';
 		
 		double norm=0;
 		for (int j=0; j<N; j++) {
@@ -59,6 +63,7 @@ class System {
 	
 	// Zeit
 	double delta_t;
+	
 	// aktuelle Geschw.
 	double xdot_index;
 	
@@ -83,7 +88,6 @@ System::System(double index_0, double v_0, double xdot_index_0, double* y_0, dou
 	delta_t=0.0;
 	xdot_index=xdot_index_0;
 	
-	
 	y=new double[N];
 	ydot=new double[N];
 	
@@ -103,7 +107,7 @@ double System::Oscillate(int ind, double del_t) {
 	double next=0.0;
 	#pragma omp parallel for ordered reduction(+:next)
 	for (int i=0; i<N; i++) {
-		w[i]=y[i]*cos(sqrt(-EigVals[i])*del_t) + (ydot[i]/(sqrt(-EigVals[i])))*sin(sqrt(-EigVals[i])*del_t); // Watch out: assuming EigVals are negative
+		w[i]=y[i]*cos(sqrt(-EigVals[i])*del_t) + (ydot[i]/(sqrt(-EigVals[i])))*sin(sqrt(-EigVals[i])*del_t); // Watch out: assuming Matrix is neg. def.
 		wdot[i]=ydot[i]*cos(sqrt(-EigVals[i])*del_t) - y[i]*(sqrt(-EigVals[i]))*sin(sqrt(-EigVals[i])*del_t);
 		
 		// compute next lattice velocity
@@ -172,7 +176,7 @@ double* System::Evolve(double* arr) {
 	}
 	
 	// Gitter weiterentwickeln
-	xdot_index=this->Oscillate(index, delta_t); // sets x and xdot to new values
+	xdot_index=this->Oscillate(index, delta_t);
 	
 	// Hier wird der Index gespeichert, an dem der folgende Stoss mit den hiesigen Geschwindigkeiten stattfindet
 	*arr=index;
@@ -201,92 +205,102 @@ int main() {
 // Matrizen erzeugen
 TridiagToeplitz();
 
-// Raeumliche Aufloesung Anfangswerte
-const unsigned int resol=1;
-int index_0s[resol]={start_index}; // integers...
-
-
-// number of elements in each file line
-int neefl=3;
-vector<double> particle_data_array(neefl*resol*steps, 0.0); // neefl=number of elements in each file line
-
 // Anfangswerte Gitter
 double x_0[N]={};
 double xdot_0[N]={};
-double y_0[N]={};
-double ydot_0[N]={};
+double yy_0[N]={};
+double yydot_0[N]={};
 
-ydot_0[n-1]=excitation;//0.01;//0.1118;//0.005;
+excitation=L/(T[0][start_index]*2*(2*M_PI/sqrt(-EigVals[n]) + 0.25*2*M_PI/sqrt(-EigVals[n])));
+yydot_0[n-1]=excitation;
 
 for (int i=0; i<N; i++) {
 	for (int j=0; j<N; j++) {
-		x_0[i]+=T[i][j]*y_0[j];
-		xdot_0[i]+=T[i][j]*ydot_0[j];
+		x_0[i]+=T[i][j]*yy_0[j];
+		xdot_0[i]+=T[i][j]*yydot_0[j];
 	}
 	//cout << xdot_0[i]*xdot_0[i]/L << "\n";
 }
-int kurz=N/2 - 1;
-cout << xdot_0[kurz]*xdot_0[kurz]/L << "\n";
-cout << xdot_0[kurz+1]*xdot_0[kurz+1]/L << "\n";
-cout << xdot_0[kurz+2]*xdot_0[kurz+2]/L << "\n";
+int kurz=10;
+int kurz2=N/2 - 1;
 cout << "----------" << "\n";
-cout << L/xdot_0[kurz] << "\n";
-cout << L/xdot_0[kurz+1] << "\n";
-cout << L/xdot_0[kurz+2] << "\n";
-
+cout << L/(2*xdot_0[kurz]) << "\n";
+cout << L/(2*xdot_0[kurz+1]) << "\n";
+cout << L/(2*xdot_0[kurz+2]) << "\n";
+cout << "----------" << "\n";
+cout << L/(2*xdot_0[kurz2]) << "\n";
+cout << L/(2*xdot_0[kurz2+1]) << "\n";
+cout << L/(2*xdot_0[kurz2+2]) << "\n";
+cout << "----------" << "\n";
+cout << L/(2*xdot_0[start_index]) << "\n";
+cout << L/(2*xdot_0[start_index+1]) << "\n";
+cout << L/(2*xdot_0[start_index+2]) << "\n";
+cout << "----------" << "\n";
 
 double energie=0;
 	for (int i=0; i<N; i++) {
 			energie+=0.5*m*xdot_0[i]*xdot_0[i];
 	}
 	
-cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
+cout << "Energie: " << energie << '\n';
 cout << "\n";
 
-// Anfangsgeschwindigkeit erste Gittermasse
-double xdot_index_0=0.0;
 
-double* ptr;
-ptr=&particle_data_array[0];
+ofstream system_info;
+system_info.open("data/bouncing_system_info.txt");
 
-for (int i=0; i<resol; i++) {
-	// Anfangsposition Teilchen
-	int index_0=index_0s[i]; // round(pos_0/L) - 1
+system_info << "# N: " << N << '\n';
+system_info << "# M: " << M << '\n';
+system_info << "# m: " << m << '\n';
+system_info << "# v_0: " << v_0 << '\n';
+system_info << "# L: " << L << '\n'; 
+system_info << "# steps: " << steps << '\n';  
+system_info << "# resol: " << resol << '\n'; 
+
+system_info.close();
+
+for (int k=0; k<resol; k++) {
+	// must be reset because in the initialization the System pointers are set to these arrays
+	double y_0[N]={};
+	double ydot_0[N]={};
+	ydot_0[n-1]=excitation;
+
+	int index_0=index_0s[k]; // Anfangsposition Teilchen
+	double xdot_index_0=0.0; // Anfangsgeschwindigkeit erste Gittermasse
 	
 	for (int j=0; j<N; j++) {
 		xdot_index_0+=T[index_0][j]*ydot_0[j];
 	}
+	
+	int neefl=3; // number of elements in each file line
+	vector<double> particle_data_array(neefl*resol*steps, 0.0); // neefl=number of elements in each file line
+	double* ptr;
+	ptr=&particle_data_array[0];
 
 	System sys(index_0, v_0, xdot_index_0, y_0, ydot_0);
 
-	for (int k=0; k<steps; k++) {
+	for (int j=0; j<steps; j++) {
 		ptr=sys.Evolve(ptr);
 	}
-}
 
-// Textdatei anlegen und oeffnen
-ofstream particle_data;
-particle_data.open("bouncing_particle_data.txt");
+	// Textdatei anlegen und oeffnen
+	ofstream particle_data;
+    	ostringstream FileNameStream;
+    	FileNameStream << "data/bouncing_particle_data_" << k << ".txt";
+    	string FileName = FileNameStream.str();
+    	particle_data.open(FileName.c_str());
 
-particle_data << "# N: " << N << '\n';
-particle_data << "# M: " << M << '\n';
-particle_data << "# m: " << m << '\n';
-particle_data << "# v_0: " << v_0 << '\n';
-particle_data << "# L: " << L << '\n'; 
-particle_data << "# steps: " << steps << '\n';  
-particle_data << "# resol: " << resol << '\n'; 
-particle_data << "# ----------------------------" << '\n';
-particle_data << "# ----------------------------" << '\n';
-
-// array einlesen
-for (int i=0; i<resol*steps; i++) {
-	for (int j=i*neefl; j<(i+1)*neefl; j++) { // neefl=number of elements in each file line
-		particle_data << particle_data_array[j] << '\t'; // possibly use << setw(15) or so
+	// array einlesen
+	for (int i=0; i<steps; i++) {
+		for (int j=i*neefl; j<(i+1)*neefl; j++) { // neefl=number of elements in each file line
+			particle_data << particle_data_array[j] << '\t'; // possibly use << setw(15) or so
+		}
+		particle_data << '\n';
 	}
-	particle_data << '\n';
-}
 
-particle_data.close();
+	particle_data.close();
+	
+}
 
 return 0;
 }

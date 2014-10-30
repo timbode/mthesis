@@ -1,6 +1,9 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
+#include <string>
+#include <cstring>
 #include <omp.h>
 #include <vector>
 #include <math.h>
@@ -8,8 +11,8 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=300; // Anzahl Gittermassen
-const unsigned int steps=1000000; // Anzahl Zeitschritte
+const unsigned int N=5000; // Anzahl Gittermassen
+const unsigned int steps=10000000; // Anzahl Zeitschritte
 const unsigned int n=1; // Energielevel
 const double a=1.0; // Boxlaenge
 const double L=a/(N+1); // Abstand Gittermassen
@@ -20,7 +23,9 @@ const double E_0=n*n*h*h/(8*M*a*a); // Energie
 const double k=(N+1)*(N+1)*m*E_0/(2*M*a*a);// Federkonstante // (-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)))
 
 double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
-int start_index=36.0; // Anfangsposition Teilchen
+int start_index=1136.0; // Anfangsposition Teilchen
+const unsigned int resol=1; // Raeumliche Aufloesung Anfangswerte
+double pos_0s[resol]={start_index};
 double excitation=0.005; // Anfangsanregung Gitter
 
 // Vektoren und Matrizen
@@ -48,6 +53,8 @@ class System {
    public:
    	// constructor
 	System(double, double, double, double*, double*);
+	// destructor
+	~System();
 	
 	// Teilchen
 	double pos;
@@ -77,7 +84,7 @@ System::System(double pos_0, double v_0, double xdot_index_0, double* y_0, doubl
 	pos=pos_0;
 	v=v_0;
 	
-	delta_t=50.0; // mind. 16+2=18
+	delta_t=82.0; // mind. 16+2=18
 	xdot_index=xdot_index_0;
 	
 	y=new double[N];
@@ -89,6 +96,9 @@ System::System(double pos_0, double v_0, double xdot_index_0, double* y_0, doubl
 	y=y_0;
 	ydot=ydot_0;	
 }
+
+// destructor
+System::~System() {}
 
 double System::Collision(double m1, double v1, double m2, double v2) {
 	return 2*((m1*v1 + m2*v2)/(m1 + m2)) - v1;
@@ -135,15 +145,23 @@ double* System::Evolve(double* arr) {
 	
 	// ydot updaten
 	int index=round(pos/L) - 1;
+	
+	// Spezialfall Enden
+	if (index==N) { 
+		index-=1; // rechts
+	}
+	if (index==-1) {
+		index+=1; // links
+	}
+	
 	#pragma omp parallel for
 	for (int i=0; i<N; i++) {
-		// WATCH OUT: the index of T and the one of xdot are not the same here...
 		ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
 	}
 	
 	// Position updaten
 	pos+=v*delta_t;
-	
+
 	// Reflektion
 	double B=(N+1)*L; // B=a...
 	int b=floor(pos/B);
@@ -202,24 +220,18 @@ int main() {
 // Matrizen erzeugen
 TridiagToeplitz();
 
-// Raeumliche Aufloesung Anfangswerte
-const unsigned int resol=1;
-double pos_0s[resol]={start_index};
-
-vector<double> particle_data_array(6*resol*steps, 0.0); // 6=number of elements in each file line
-
 // Anfangswerte Gitter
 double x_0[N]={};
 double xdot_0[N]={};
-double y_0[N]={};
-double ydot_0[N]={};
+double yy_0[N]={};
+double yydot_0[N]={};
 
-ydot_0[n-1]=excitation;//15.0;//0.1118;//0.005;
+yydot_0[n-1]=excitation;//15.0;//0.1118;//0.005;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
-			x_0[i]+=T[i][j]*y_0[j];
-			xdot_0[i]+=T[i][j]*ydot_0[j];
+			x_0[i]+=T[i][j]*yy_0[j];
+			xdot_0[i]+=T[i][j]*yydot_0[j];
 			
 		}
 		//cout << xdot_0[i] << "\n";
@@ -231,55 +243,65 @@ double energie=0;
 	}
 	
 cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
-cout << "\n";
+cout << '\n';
 
-// Anfangsgeschwindigkeit erste Gittermasse
-double xdot_index_0=0.0;
+ofstream system_info;
+system_info.open("data/system_info.txt");
 
-double* ptr;
-ptr=&particle_data_array[0];
+system_info << "# N: " << N << '\n';
+system_info << "# M: " << M << '\n';
+system_info << "# m: " << m << '\n';
+system_info << "# v_0: " << v_0 << '\n';
+system_info << "# L: " << L << '\n'; 
+system_info << "# steps: " << steps << '\n';  
+system_info << "# resol: " << resol << '\n'; 
 
-for (int i=0; i<resol; i++) {
-	// Anfangsposition Teilchen
-	double pos_0=pos_0s[i]*L;
-	
-	// Anfangsindex Teilchen
-	int index_0=round(pos_0/L) - 1;
+system_info.close();
+
+for (int k=0; k<resol; k++) {
+	// must be reset because in the initialization the System pointers are set to these arrays
+	double y_0[N]={};
+	double ydot_0[N]={};
+	ydot_0[n-1]=excitation;//15.0;//0.1118;//0.005;
+
+	double pos_0=pos_0s[k]*L; // Anfangsposition Teilchen
+	int index_0=round(pos_0/L) - 1; // Anfangsindex Teilchen
+	double xdot_index_0=0.0; // Anfangsgeschwindigkeit erste Gittermasse
 	
 	for (int j=0; j<N; j++) {
 		xdot_index_0+=T[index_0][j]*ydot_0[j];
 	}
+	
+	// number of elements in each file line
+	int neefl=6;
+	vector<double> particle_data_array(neefl*steps, 0.0); // neefl=number of elements in each file line
+	double* ptr;
+	ptr=&particle_data_array[0];
 
 	System sys(pos_0, v_0, xdot_index_0, y_0, ydot_0);
 
-	for (int k=0; k<steps; k++) {
+	for (int j=0; j<steps; j++) {
 		ptr=sys.Evolve(ptr);
 	}
-}
+	
+	// Textdatei anlegen und oeffnen
+	ofstream particle_data;
+    	ostringstream FileNameStream;
+    	FileNameStream << "data/particle_data_" << k << ".txt";
+    	string FileName = FileNameStream.str();
+    	particle_data.open(FileName.c_str());
 
-// Textdatei anlegen und oeffnen
-ofstream particle_data;
-particle_data.open("particle_data.txt");
-
-particle_data << "# N: " << N << '\n';
-particle_data << "# M: " << M << '\n';
-particle_data << "# m: " << m << '\n';
-particle_data << "# v_0: " << v_0 << '\n';
-particle_data << "# L: " << L << '\n'; 
-particle_data << "# steps: " << steps << '\n';  
-particle_data << "# resol: " << resol << '\n'; 
-particle_data << "# ----------------------------" << '\n';
-particle_data << "# ----------------------------" << '\n';
-
-// array einlesen
-for (int i=0; i<resol*steps; i++) {
-	for (int j=i*6; j<(i+1)*6; j++) { // 6=number of elements in each file line
-		particle_data << setprecision(15) << particle_data_array[j] << '\t'; // possibly use << setw(15) or so
+	// array einlesen
+	for (int i=0; i<steps; i++) {
+		for (int j=i*neefl; j<(i+1)*neefl; j++) { // neefl=number of elements in each file line
+			particle_data << particle_data_array[j] << '\t'; // possibly use << setw(15) or so
+		}
+		particle_data << '\n';
 	}
-	particle_data << '\n';
-}
 
-particle_data.close();
+	particle_data.close();
+	
+}
 
 return 0;
 }

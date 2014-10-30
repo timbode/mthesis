@@ -20,18 +20,21 @@ def AddInterval(bin_width,c,d,liste,weight,weights): # Interval [c,d]
 #---------------------------------------------------------------------------------
 
 constants=[]
-'''
-L=float(constants[4][2])
+with open('data/system_info.txt') as f:
+	for line in f:
+		if line.startswith('#'):
+			strang=line.strip().split()
+			constants.append(strang)
+	f.close()
+		
 N=int(constants[0][2])
+L=float(constants[4][2])
 steps=int(constants[5][2])
 resol=int(constants[6][2])
-'''
-N=0
-L=0
-bin_width=0
+print constants
 
 bins=50
-
+bin_width=(N+1)*L/bins
 burn_in=10000
 
 loc_prob1=[]
@@ -45,28 +48,19 @@ particle_positions=[]
 particle_velocities=[]
 lattice_velocities_pre=[]
 #lattice_velocities_post=[]
-with open('particle_data.txt') as f:
-	counter=0
-	initial=0
-	for k, line in enumerate(f):
-		if line.startswith("#"):
-			strang=line.strip().split()
-			constants.append(strang)
-		else:	
+for i in xrange(0,resol):
+	with open('data/particle_data_'+str(i)+'.txt') as f:
+		initial=0
+		for j, line in enumerate(f):
 			string=line.strip().split()
-			particle_positions.append(float(string[2])) # 1 for real positions, 2 for indices
+			particle_positions.append(float(string[1])) # 1 for real positions, 2 for indices
 			particle_velocities.append(float(string[3]))
 			lattice_velocities_pre.append(float(string[5]))
 			#lattice_velocities_post.append(float(string[5]))
 		
-			if k < (counter*int(constants[5][2]) + burn_in + 9):
+			if j < burn_in:
 				continue
-				
-			if ((k-9) % int(constants[5][2])) == 0:
-				counter+=1
-				continue
-			#print k
-				
+			
 			b=int(string[0])
 			final=float(string[1])
 			v=float(string[3])
@@ -78,9 +72,6 @@ with open('particle_data.txt') as f:
 				continue
 				
 			#---------------------------------------------------------------------------------
-			N=int(constants[0][2])
-			L=float(constants[4][2])
-			bin_width=(N+1)*L/bins
 			if b < 0:
 				if (b % 2) != 0: # ungerade
 					AddInterval(bin_width,0,initial,loc_prob2,weight,weights2)
@@ -94,7 +85,6 @@ with open('particle_data.txt') as f:
 					for k in xrange(0,abs(b)-1): # ganze Strecken
 						AddInterval(bin_width,0,(N+1)*L,loc_prob2,weight,weights2)
 			
-	
 			if b > 0:
 				if (b % 2) != 0: # ungerade
 					AddInterval(bin_width,initial,(N+1)*L,loc_prob3,weight,weights3)
@@ -119,13 +109,10 @@ with open('particle_data.txt') as f:
 			initial=final
 	f.close()
 	
-constants=constants[:-2]
-print constants
-
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 
-pp=PdfPages('output.pdf')		
+pp=PdfPages('data/output.pdf')		
 
 #---------------------------------------------------------------------------------
 # histogram
@@ -140,9 +127,9 @@ pp.savefig(fig1)
 #plt.clf()
 
 #---------------------------------------------------------------------------------
-time_plots=0
+time_plots=1
 time_start=0
-time_end=time_start + 1000000
+time_end=time_start + resol*steps
 markersize=3
 
 scatter_plots=0
@@ -156,12 +143,12 @@ if time_plots==1:
 	y_axis=particle_positions[time_start:time_end]	
 	t_axis=xrange(0, len(y_axis))
 
-	fig2=plt.figure(figsize=(40,5))
+	fig2=plt.figure(figsize=(20,5))
 	plt.title('Trajectory')
 	plt.xlabel('t')
 	plt.ylabel('pos')
 	plt.plot(t_axis,y_axis)#,marker='o',markersize=markersize)
-	#plt.axis([time_start,time_end,0,1])
+	plt.axis([time_start,time_end,0,1])
 	plt.grid(True)
 	pp.savefig(fig2)
 	'''
@@ -198,7 +185,7 @@ if time_plots==1:
 	y_axis=particle_velocities[time_start:time_end]
 	t_axis=xrange(0, len(y_axis))
 
-	fig3=plt.figure(figsize=(40,5))
+	fig3=plt.figure(figsize=(20,5))
 	plt.title('Velocity (post)')
 	plt.xlabel('t')
 	plt.ylabel('v')
@@ -238,7 +225,7 @@ if time_plots==1:
 	#y_axis_2=lattice_velocities_post
 	t_axis=xrange(0, len(y_axis_1))
 
-	fig3=plt.figure(figsize=(40,5))
+	fig3=plt.figure(figsize=(20,5))
 	plt.title('Current lattice velocity')
 	plt.xlabel('t')
 	plt.ylabel('xdot')
