@@ -1,6 +1,7 @@
 from numpy import *
 from math import *
 import matplotlib
+import random
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
@@ -16,6 +17,49 @@ def AddInterval(bin_width,c,d,liste,weight,weights): # Interval [c,d]
 		liste.append(k*bin_width + bin_width/2)
 		weights.append(weight)
 	return 0
+	
+	
+def TimePlots(steps, axis_size, what='positions'):
+	strangs={'positions': particle_positions, 'velocities': particle_velocities, 'lattice_velocities': lattice_velocities}
+	for strang in strangs:
+			if strang == what:
+				liste=strangs[strang]
+				
+	fig=plt.figure(figsize=(20,20))
+	for k in xrange(0,int(steps/axis_size)):
+		time_start=int(k*axis_size)
+		time_end=int((k+1)*axis_size)
+		
+		y_axis=liste[time_start:time_end-1]	
+		t_axis=xrange(0, len(y_axis))
+		
+		ax=plt.subplot(int(steps/axis_size),1,k+1)
+		ticker=axis_size/(len(ax.get_xticks()) - 1)
+		ax.set_xticklabels(arange(time_start,time_end + ticker, ticker))
+		if what == 'positions':
+			ax.set_ylim(0,1)
+		ax.grid(True)
+		ax.plot(t_axis,y_axis)
+	fig.savefig('data/'+what+'.png')
+	#fig.savefig('data/output_'+str(N)+'_'+str(steps)+'_'+str(delta_t)+'.png')
+
+def ScatterPlots(where, points, what='velocities'):
+	strangs={'positions': particle_positions, 'velocities': particle_velocities, 'lattice_velocities': lattice_velocities}
+	for strang in strangs:
+			if strang == what:
+				liste=strangs[strang]
+	liste1=liste[:-1]
+	liste2=liste[1:]
+	print where, points
+	liste1=liste1[where:where+points]
+	liste2=liste2[where:where+points]
+	
+	fig=plt.figure()
+	plt.scatter(liste1, liste2, s=0.1)
+	plt.title('Recursion plot - ' + what)
+	#plt.xlim(0,1); plt.ylim(0,1)
+	plt.grid(True)
+	fig.savefig('data/recur_'+what+'.png')
 
 #---------------------------------------------------------------------------------
 
@@ -31,23 +75,20 @@ N=int(constants[0][2])
 L=float(constants[4][2])
 steps=int(constants[5][2])
 resol=int(constants[6][2])
+delta_t=float(constants[7][2])
 print constants
 
-bins=50
+bins=100
 bin_width=(N+1)*L/bins
-burn_in=10000
+burn_in=1000
 
-loc_prob1=[]
-weights1=[]
-loc_prob2=[]
-weights2=[]
-loc_prob3=[]
-weights3=[]
+loc_prob1=[]; weights1=[]
+loc_prob2=[]; weights2=[]
+loc_prob3=[]; weights3=[]
 
 particle_positions=[]
 particle_velocities=[]
-lattice_velocities_pre=[]
-#lattice_velocities_post=[]
+lattice_velocities=[]
 for i in xrange(0,resol):
 	with open('data/particle_data_'+str(i)+'.txt') as f:
 		initial=0
@@ -55,8 +96,7 @@ for i in xrange(0,resol):
 			string=line.strip().split()
 			particle_positions.append(float(string[1])) # 1 for real positions, 2 for indices
 			particle_velocities.append(float(string[3]))
-			lattice_velocities_pre.append(float(string[5]))
-			#lattice_velocities_post.append(float(string[5]))
+			lattice_velocities.append(float(string[5]))
 		
 			if j < burn_in:
 				continue
@@ -112,193 +152,27 @@ for i in xrange(0,resol):
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 
-pp=PdfPages('data/output.pdf')		
+	
 
 #---------------------------------------------------------------------------------
 # histogram
+#pp=PdfPages('data/histogram.pdf')	
 fig1=plt.figure()
-plt.hist([loc_prob1,loc_prob2,loc_prob3], bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=False, weights=[weights1,weights2,weights3], stacked=True)
+plt.hist([loc_prob1,loc_prob2,loc_prob3], bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=False, weights=[weights1,weights2,weights3],stacked=True)
 plt.title('Location probability')
 plt.xlabel('pos')
 plt.ylabel('#')
 plt.grid(True)
-#plt.ylim(0.0, 0.7e+5)
-pp.savefig(fig1)
+plt.xlim(0.0, 1.0)
+fig1.savefig('data/histogram.png')
+#fig1.savefig('data/histogram_'+str(N)+'_'+str(steps)+'_'+str(delta_t)+'.png')
 #plt.clf()
-
-#---------------------------------------------------------------------------------
-time_plots=1
-time_start=0
-time_end=time_start + resol*steps
-markersize=3
-
-scatter_plots=0
-scatter_start=2800000
-scatter_end=2900000
+#pp.close()
 #---------------------------------------------------------------------------------
 
-if time_plots==1:
-	#---------------------------------------------------------------------------------
-	# positions
-	y_axis=particle_positions[time_start:time_end]	
-	t_axis=xrange(0, len(y_axis))
 
-	fig2=plt.figure(figsize=(20,5))
-	plt.title('Trajectory')
-	plt.xlabel('t')
-	plt.ylabel('pos')
-	plt.plot(t_axis,y_axis)#,marker='o',markersize=markersize)
-	plt.axis([time_start,time_end,0,1])
-	plt.grid(True)
-	pp.savefig(fig2)
-	'''
-	#---------------------------------------------------------------------------------
-		# positions
-	y_axis=particle_positions[time_end:2*time_end]	
-	t_axis=xrange(0, len(y_axis))
-
-	fig2=plt.figure(figsize=(40,5))
-	plt.title('Trajectory')
-	plt.xlabel('t')
-	plt.ylabel('pos')
-	plt.plot(t_axis,y_axis,marker='o',markersize=markersize)
-	#plt.axis([time_start,time_end,0,1])
-	plt.grid(True)
-	pp.savefig(fig2)
-
-	#---------------------------------------------------------------------------------
-		# positions
-	y_axis=particle_positions[2*time_end:3*time_end]	
-	t_axis=xrange(0, len(y_axis))
-
-	fig2=plt.figure(figsize=(40,5))
-	plt.title('Trajectory')
-	plt.xlabel('t')
-	plt.ylabel('pos')
-	plt.plot(t_axis,y_axis,marker='o',markersize=markersize)
-	#plt.axis([time_start,time_end,0,1])
-	plt.grid(True)
-	pp.savefig(fig2)
-	'''
-	#---------------------------------------------------------------------------------
-	# velocities
-	y_axis=particle_velocities[time_start:time_end]
-	t_axis=xrange(0, len(y_axis))
-
-	fig3=plt.figure(figsize=(20,5))
-	plt.title('Velocity (post)')
-	plt.xlabel('t')
-	plt.ylabel('v')
-	plt.plot(t_axis,y_axis)
-	plt.grid(True)
-	pp.savefig(fig3)
-	'''
-	#---------------------------------------------------------------------------------
-		# velocities
-	y_axis=particle_velocities[time_end:2*time_end]
-	t_axis=xrange(0, len(y_axis))
-
-	fig3=plt.figure(figsize=(40,5))
-	plt.title('Velocity (post)')
-	plt.xlabel('t')
-	plt.ylabel('v')
-	plt.plot(t_axis,y_axis)
-	plt.grid(True)
-	pp.savefig(fig3)
-
-	#---------------------------------------------------------------------------------
-		# velocities
-	y_axis=particle_velocities[2*time_end:3*time_end]
-	t_axis=xrange(0, len(y_axis))
-
-	fig3=plt.figure(figsize=(40,5))
-	plt.title('Velocity (post)')
-	plt.xlabel('t')
-	plt.ylabel('v')
-	plt.plot(t_axis,y_axis)
-	plt.grid(True)
-	pp.savefig(fig3)
-	'''
-	#---------------------------------------------------------------------------------
-	# lattice velocities pre and post
-	y_axis_1=lattice_velocities_pre[time_start:time_end]	
-	#y_axis_2=lattice_velocities_post
-	t_axis=xrange(0, len(y_axis_1))
-
-	fig3=plt.figure(figsize=(20,5))
-	plt.title('Current lattice velocity')
-	plt.xlabel('t')
-	plt.ylabel('xdot')
-	plt.plot(t_axis,y_axis_1)
-	#plt.plot(t_axis,y_axis_2)
-	plt.grid(True)
-	pp.savefig(fig3)
-
-	#---------------------------------------------------------------------------------
-
-#---------------------------------------------------------------------------------
-
-if scatter_plots==1:
-	#---------------------------------------------------------------------------------
-	# recursion plot positions
-	liste1=particle_positions[:-1]
-	liste2=particle_positions[1:]
-	liste1=liste1[scatter_start:scatter_end]
-	liste2=liste2[scatter_start:scatter_end]
-
-	fig4=plt.figure()
-	plt.scatter(liste1,liste2,s=0.1)
-	plt.title('Recursion plot - positions of collisions')
-	plt.xlabel('pos_i')
-	plt.ylabel('pos_i+1')
-	plt.axis([0,1,0,1])
-	plt.grid(True)
-	pp.savefig(fig4)
-	#---------------------------------------------------------------------------------
-	# recursion plot velocities
-	liste1=particle_velocities[:-1]
-	liste2=particle_velocities[1:]
-	liste1=liste1[scatter_start:scatter_end]
-	liste2=liste2[scatter_start:scatter_end]
-
-	fig5=plt.figure()
-	plt.title('Recursion plot - velocities (post)')
-	plt.xlabel('v_i')
-	plt.ylabel('v_i+1')
-	plt.scatter(liste1,liste2,s=0.1)
-	plt.grid(True)
-	pp.savefig(fig5)
-	#---------------------------------------------------------------------------------
-	# recursion plot lattice velocities
-	liste1=lattice_velocities_pre[:-1]
-	liste2=lattice_velocities_pre[1:]
-	liste1=liste1[scatter_start:scatter_end]
-	liste2=liste2[scatter_start:scatter_end]
-
-	fig6=plt.figure()
-	plt.scatter(liste1,liste2,s=0.1)
-	plt.title('Recursion plot - velocity of current lattice point (post)')
-	plt.xlabel('xdot_i')
-	plt.ylabel('xdot_i+1')
-	plt.grid(True)
-	pp.savefig(fig6)
-	#---------------------------------------------------------------------------------
-	# scatter plot mixed velocities
-	liste1=particle_velocities
-	liste2=lattice_velocities_pre
-	liste1=liste1[scatter_start:scatter_end]
-	liste2=liste2[scatter_start:scatter_end]
-
-	fig6=plt.figure()
-	plt.scatter(liste1,liste2,s=0.1)
-	plt.title('Scatter plot - velocity of particle (post) and current lattice mass')
-	plt.xlabel('v_i')
-	plt.ylabel('xdot_i')
-	plt.grid(True)
-	pp.savefig(fig6)
-#---------------------------------------------------------------------------------
-
-pp.close()
-
+TimePlots(steps, steps/5, what='velocities')
+ScatterPlots(random.randint(0,steps), 10000)
+ScatterPlots(0, 10000, what='positions')
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------

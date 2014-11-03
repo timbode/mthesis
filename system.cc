@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -11,8 +12,8 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=5000; // Anzahl Gittermassen
-const unsigned int steps=10000000; // Anzahl Zeitschritte
+const unsigned int N=300; // Anzahl Gittermassen
+const unsigned int steps=1e4; // Anzahl Zeitschritte
 const unsigned int n=1; // Energielevel
 const double a=1.0; // Boxlaenge
 const double L=a/(N+1); // Abstand Gittermassen
@@ -20,13 +21,15 @@ const double h=1.0; // Wirkungsquantum //6.62606957*1e-34;
 const double M=1.0; // Teilchenmasse
 const double m=1e+4*M; // Gitterteilchenmasse
 const double E_0=n*n*h*h/(8*M*a*a); // Energie
-const double k=(N+1)*(N+1)*m*E_0/(2*M*a*a);// Federkonstante // (-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)))
+const double k=(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));//(N+1)*(N+1)*m*E_0/(2*M*a*a);// Federkonstante 
 
 double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
-int start_index=1136.0; // Anfangsposition Teilchen
+int start_index=36.0; // Anfangsposition Teilchen
 const unsigned int resol=1; // Raeumliche Aufloesung Anfangswerte
 double pos_0s[resol]={start_index};
-double excitation=0.005; // Anfangsanregung Gitter
+double excitation=0.1; // Anfangsanregung Gitter
+
+double delta_t_0=8.0;
 
 // Vektoren und Matrizen
 vector<double> EigVals(N);
@@ -52,7 +55,7 @@ void TridiagToeplitz() {
 class System {
    public:
    	// constructor
-	System(double, double, double, double*, double*);
+	System(double, double, double, double, double*, double*);
 	// destructor
 	~System();
 	
@@ -80,11 +83,11 @@ class System {
 };
 
 // initializing
-System::System(double pos_0, double v_0, double xdot_index_0, double* y_0, double* ydot_0) {
+System::System(double delta_t_0, double pos_0, double v_0, double xdot_index_0, double* y_0, double* ydot_0) {
 	pos=pos_0;
 	v=v_0;
 	
-	delta_t=82.0; // mind. 16+2=18
+	delta_t=delta_t_0; // mind. 16+2=18
 	xdot_index=xdot_index_0;
 	
 	y=new double[N];
@@ -102,14 +105,13 @@ System::~System() {}
 
 double System::Collision(double m1, double v1, double m2, double v2) {
 	return 2*((m1*v1 + m2*v2)/(m1 + m2)) - v1;
-	// return 2*v2 - v1;
 }
 
 double System::Oscillate(int ind, double del_t) {
 	double next=0.0;
 	#pragma omp parallel for ordered reduction(+:next)
 	for (int i=0; i<N; i++) {
-		w[i]=y[i]*cos(sqrt(-EigVals[i])*del_t) + (ydot[i]/(sqrt(-EigVals[i])))*sin(sqrt(-EigVals[i])*del_t); // Watch out: assuming EigVals are negative
+		w[i]   =y[i]*cos(sqrt(-EigVals[i])*del_t)+ (ydot[i]/(sqrt(-EigVals[i])))*sin(sqrt(-EigVals[i])*del_t); // Watch out: assuming EigVals are negative
 		wdot[i]=ydot[i]*cos(sqrt(-EigVals[i])*del_t) - y[i]*(sqrt(-EigVals[i]))*sin(sqrt(-EigVals[i])*del_t);
 		
 		// compute next lattice velocity
@@ -135,6 +137,11 @@ double System::Oscillate(int ind, double del_t) {
 
 double* System::Evolve(double* arr) {
 
+	int index=round(pos/L) - 1;
+	// Spezialfall Enden -------------------- MUST BE REVISITED... NOT OKAY TO PUT PARTICLE AWAY FROM BOUNDARY?
+	if (index== N) index-=1; // rechts
+	if (index==-1) index+=1; // links
+
 	// neue Geschwindigkeiten berechnen
 	double w=v; // temporarily copy v
 	v=this->Collision(M, v, m, xdot_index);
@@ -144,16 +151,6 @@ double* System::Evolve(double* arr) {
 	double ww_post=xdot_index; // save xdot_index after collision but before oscillation
 	
 	// ydot updaten
-	int index=round(pos/L) - 1;
-	
-	// Spezialfall Enden
-	if (index==N) { 
-		index-=1; // rechts
-	}
-	if (index==-1) {
-		index+=1; // links
-	}
-	
 	#pragma omp parallel for
 	for (int i=0; i<N; i++) {
 		ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
@@ -163,44 +160,33 @@ double* System::Evolve(double* arr) {
 	pos+=v*delta_t;
 
 	// Reflektion
-	double B=(N+1)*L; // B=a...
-	int b=floor(pos/B);
+	int b=floor(pos/a);
 	if ((b % 2) == 0) { // gerade
-		pos=pos - b*B;
+		pos=pos - b*a;
 		// v bleibt
 	}
 	else { // ungerade
-		pos=B - (pos - b*B);
+		pos=a - (pos - b*a);
 		v=-v;
 	}
 	
 	// Index updaten
 	index=round(pos/L) - 1;
 	
-	// Spezialfall Enden
-	if (index==N) { 
-		index-=1; // rechts
-	}
-	if (index==-1) {
-		index+=1; // links
-	}
+	// Spezialfall Enden -------------------- MUST BE REVISITED... NOT OKAY TO PUT PARTICLE AWAY FROM BOUNDARY?
+	if (index== N) index-=1; // rechts
+	if (index==-1) index+=1; // links
 	
 	// Gitter weiterentwickeln
 	xdot_index=this->Oscillate(index, delta_t);
 	
 	// Position, resultierenden Index, (resultierende) Geschwindigkeiten des Teilchens und der Gittermasse speichern (v ist dann die Ausgangsgeschw. fuer den folgenden Stoss)
-	*arr=b;
-	arr++;
-	*arr=pos;
-	arr++;
-	*arr=index;
-	arr++;
-	*arr=v;
-	arr++;
-	*arr=ww_pre; // use ww_pre
-	arr++;
-	*arr=ww_post; // use ww_post
-	arr++;
+	*arr=b; arr++;
+	*arr=pos; arr++;
+	*arr=index; arr++;
+	*arr=v; arr++;
+	*arr=ww_pre; arr++;// use ww_pre
+	*arr=ww_post; arr++;// use ww_post
 	
 	return arr;
 	
@@ -216,6 +202,10 @@ double* System::Evolve(double* arr) {
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 
 int main() {
+
+//int main(int argc, char* argv[]) {
+//delta_t_0=atof(argv[1]);
+//cout << argv[1] << '\n';
 
 // Matrizen erzeugen
 TridiagToeplitz();
@@ -254,7 +244,8 @@ system_info << "# m: " << m << '\n';
 system_info << "# v_0: " << v_0 << '\n';
 system_info << "# L: " << L << '\n'; 
 system_info << "# steps: " << steps << '\n';  
-system_info << "# resol: " << resol << '\n'; 
+system_info << "# resol: " << resol << '\n';
+system_info << "# delta_t: " << delta_t_0 << '\n'; 
 
 system_info.close();
 
@@ -262,29 +253,31 @@ for (int k=0; k<resol; k++) {
 	// must be reset because in the initialization the System pointers are set to these arrays
 	double y_0[N]={};
 	double ydot_0[N]={};
-	ydot_0[n-1]=excitation;//15.0;//0.1118;//0.005;
+	ydot_0[n-1]=excitation;
 
 	double pos_0=pos_0s[k]*L; // Anfangsposition Teilchen
 	int index_0=round(pos_0/L) - 1; // Anfangsindex Teilchen
-	double xdot_index_0=0.0; // Anfangsgeschwindigkeit erste Gittermasse
+	double xdot_index_0=0.0; // Anfangsgeschwindigkeit respektive Gittermasse
 	
 	for (int j=0; j<N; j++) {
 		xdot_index_0+=T[index_0][j]*ydot_0[j];
 	}
 	
-	// number of elements in each file line
-	int neefl=6;
-	vector<double> particle_data_array(neefl*steps, 0.0); // neefl=number of elements in each file line
+	
+	int neefl=6; // number of elements in each file line
+	vector<double> particle_data_array(neefl*steps, 0.0);
+	
 	double* ptr;
 	ptr=&particle_data_array[0];
 
-	System sys(pos_0, v_0, xdot_index_0, y_0, ydot_0);
+	System sys(delta_t_0, pos_0, v_0, xdot_index_0, y_0, ydot_0);
 
+	// time evolution
 	for (int j=0; j<steps; j++) {
 		ptr=sys.Evolve(ptr);
 	}
 	
-	// Textdatei anlegen und oeffnen
+	// open file
 	ofstream particle_data;
     	ostringstream FileNameStream;
     	FileNameStream << "data/particle_data_" << k << ".txt";
