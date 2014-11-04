@@ -5,7 +5,6 @@ import random
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 
 matplotlib.rcParams["agg.path.chunksize"]=20000
 
@@ -74,91 +73,99 @@ with open('data/system_info.txt') as f:
 N=int(constants[0][2])
 L=float(constants[4][2])
 steps=int(constants[5][2])
-resol=int(constants[6][2])
-delta_t=float(constants[7][2])
+chunk_size=int(constants[6][2])
+resol=int(constants[7][2])
+delta_t=float(constants[8][2])
 print constants
 
 bins=100
 bin_width=(N+1)*L/bins
-burn_in=1000
-
-loc_prob1=[]; weights1=[]
-loc_prob2=[]; weights2=[]
-loc_prob3=[]; weights3=[]
+binning=[q for q in arange(0,(N+1)*L + bin_width,bin_width)]
 
 particle_positions=[]
 particle_velocities=[]
 lattice_velocities=[]
+
+n1=zeros(bins); n2=zeros(bins); n3=zeros(bins)
+
 for i in xrange(0,resol):
-	with open('data/particle_data_'+str(i)+'.txt') as f:
-		initial=0
-		for j, line in enumerate(f):
-			string=line.strip().split()
-			particle_positions.append(float(string[1])) # 1 for real positions, 2 for indices
-			particle_velocities.append(float(string[3]))
-			lattice_velocities.append(float(string[5]))
-		
-			if j < burn_in:
-				continue
-			
-			b=int(string[0])
-			final=float(string[1])
-			v=float(string[3])
-			
-			weight=1/abs(v)
-			
-			if initial == 0:
-				initial=final
-				continue
+	initial=0
+	for j in xrange(0,steps/chunk_size):
+		loc_prob1=[]; weights1=[]
+		loc_prob2=[]; weights2=[]
+		loc_prob3=[]; weights3=[]
+		with open('data/particle_'+str(i)+'_data_'+str(j)+'.txt') as f:
+			for k, line in enumerate(f):
+				string=line.strip().split()
+				particle_positions.append(float(string[1])) # 1 for real positions, 2 for indices
+				particle_velocities.append(float(string[3]))
+				lattice_velocities.append(float(string[5]))
 				
-			#---------------------------------------------------------------------------------
-			if b < 0:
-				if (b % 2) != 0: # ungerade
-					AddInterval(bin_width,0,initial,loc_prob2,weight,weights2)
-					AddInterval(bin_width,0,final,loc_prob2,weight,weights2)
-					for k in xrange(0,abs(b)-1): # ganze Strecken
-						AddInterval(bin_width,0,(N+1)*L,loc_prob2,weight,weights2)
+				if j == 0:
+					continue
 			
-				else: # gerade
-					AddInterval(bin_width,0,initial,loc_prob2,weight,weights2)
-					AddInterval(bin_width,final,(N+1)*L,loc_prob2,weight,weights2)
-					for k in xrange(0,abs(b)-1): # ganze Strecken
-						AddInterval(bin_width,0,(N+1)*L,loc_prob2,weight,weights2)
+				b=int(string[0])
+				final=float(string[1])
+				v=float(string[3])
 			
-			if b > 0:
-				if (b % 2) != 0: # ungerade
-					AddInterval(bin_width,initial,(N+1)*L,loc_prob3,weight,weights3)
-					AddInterval(bin_width,final,(N+1)*L,loc_prob3,weight,weights3)
-					for k in xrange(0,abs(b)-1): # ganze Strecken
-						AddInterval(bin_width,0,(N+1)*L,loc_prob3,weight,weights3)
+				weight=1/abs(v)
 			
-				else: # gerade
-					AddInterval(bin_width,initial,(N+1)*L,loc_prob3,weight,weights3)
-					AddInterval(bin_width,0,final,loc_prob3,weight,weights3)
-					for k in xrange(0,abs(b)-1): # ganze Strecken
-						AddInterval(bin_width,0,(N+1)*L,loc_prob3,weight,weights3)
+				if initial == 0:
+					initial=final
+					continue
+				
+				#---------------------------------------------------------------------------------
+				if b < 0:
+					if (b % 2) != 0: # ungerade
+						AddInterval(bin_width,0,initial,loc_prob2,weight,weights2)
+						AddInterval(bin_width,0,final,loc_prob2,weight,weights2)
+						for k in xrange(0,abs(b)-1): # ganze Strecken
+							AddInterval(bin_width,0,(N+1)*L,loc_prob2,weight,weights2)
 			
-			if b == 0:
-				if initial < final:
-					AddInterval(bin_width,initial,final,loc_prob1,weight,weights1)
-				else:
-					AddInterval(bin_width,final,initial,loc_prob1,weight,weights1)
-			#---------------------------------------------------------------------------------
+					else: # gerade
+						AddInterval(bin_width,0,initial,loc_prob2,weight,weights2)
+						AddInterval(bin_width,final,(N+1)*L,loc_prob2,weight,weights2)
+						for k in xrange(0,abs(b)-1): # ganze Strecken
+							AddInterval(bin_width,0,(N+1)*L,loc_prob2,weight,weights2)
 			
-			# Nicht vergessen:
-			initial=final
-	f.close()
+				if b > 0:
+					if (b % 2) != 0: # ungerade
+						AddInterval(bin_width,initial,(N+1)*L,loc_prob3,weight,weights3)
+						AddInterval(bin_width,final,(N+1)*L,loc_prob3,weight,weights3)
+						for k in xrange(0,abs(b)-1): # ganze Strecken
+							AddInterval(bin_width,0,(N+1)*L,loc_prob3,weight,weights3)
+			
+					else: # gerade
+						AddInterval(bin_width,initial,(N+1)*L,loc_prob3,weight,weights3)
+						AddInterval(bin_width,0,final,loc_prob3,weight,weights3)
+						for k in xrange(0,abs(b)-1): # ganze Strecken
+							AddInterval(bin_width,0,(N+1)*L,loc_prob3,weight,weights3)
+			
+				if b == 0:
+					if initial < final:
+						AddInterval(bin_width,initial,final,loc_prob1,weight,weights1)
+					else:
+						AddInterval(bin_width,final,initial,loc_prob1,weight,weights1)
+				#---------------------------------------------------------------------------------
+			
+				# Nicht vergessen:
+				initial=final
+		
+		f.close()
 	
-#---------------------------------------------------------------------------------
-#---------------------------------------------------------------------------------
-
+		if j != 0:
+			n1+=plt.hist(loc_prob1, bins=binning, normed=False, weights=weights1)[0]
+			n2+=plt.hist(loc_prob2, bins=binning, normed=False, weights=weights2)[0]
+			n3+=plt.hist(loc_prob3, bins=binning, normed=False, weights=weights3)[0]
 	
-
-#---------------------------------------------------------------------------------
+	
 # histogram
-#pp=PdfPages('data/histogram.pdf')	
+binning=binning[:-1]
+
 fig1=plt.figure()
-plt.hist([loc_prob1,loc_prob2,loc_prob3], bins=[q for q in arange(0,(N+1)*L + bin_width,bin_width)], normed=False, weights=[weights1,weights2,weights3],stacked=True)
+plt.bar(binning,n1,bin_width)
+plt.bar(binning,n2,bin_width,bottom=n1,color='g')
+plt.bar(binning,n3,bin_width,bottom=n1+n2,color='r')
 plt.title('Location probability')
 plt.xlabel('pos')
 plt.ylabel('#')
@@ -166,11 +173,13 @@ plt.grid(True)
 plt.xlim(0.0, 1.0)
 fig1.savefig('data/histogram.png')
 #fig1.savefig('data/histogram_'+str(N)+'_'+str(steps)+'_'+str(delta_t)+'.png')
-#plt.clf()
-#pp.close()
+
+
+#---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 
 
+TimePlots(steps, steps/5)
 TimePlots(steps, steps/5, what='velocities')
 ScatterPlots(random.randint(0,steps), 10000)
 ScatterPlots(0, 10000, what='positions')

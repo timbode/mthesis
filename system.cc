@@ -14,6 +14,7 @@ using namespace std;
 // Systemkonstanten
 const unsigned int N=300; // Anzahl Gittermassen
 const unsigned int steps=1e4; // Anzahl Zeitschritte
+const unsigned int chunk_size=1e3; // size of chunks the evolution is broken-up into
 const unsigned int n=1; // Energielevel
 const double a=1.0; // Boxlaenge
 const double L=a/(N+1); // Abstand Gittermassen
@@ -244,6 +245,7 @@ system_info << "# m: " << m << '\n';
 system_info << "# v_0: " << v_0 << '\n';
 system_info << "# L: " << L << '\n'; 
 system_info << "# steps: " << steps << '\n';  
+system_info << "# chunk_size: " << chunk_size << '\n';
 system_info << "# resol: " << resol << '\n';
 system_info << "# delta_t: " << delta_t_0 << '\n'; 
 
@@ -264,35 +266,39 @@ for (int k=0; k<resol; k++) {
 	}
 	
 	
-	int neefl=6; // number of elements in each file line
-	vector<double> particle_data_array(neefl*steps, 0.0);
-	
-	double* ptr;
-	ptr=&particle_data_array[0];
-
 	System sys(delta_t_0, pos_0, v_0, xdot_index_0, y_0, ydot_0);
-
-	// time evolution
-	for (int j=0; j<steps; j++) {
-		ptr=sys.Evolve(ptr);
-	}
 	
-	// open file
-	ofstream particle_data;
-    	ostringstream FileNameStream;
-    	FileNameStream << "data/particle_data_" << k << ".txt";
-    	string FileName = FileNameStream.str();
-    	particle_data.open(FileName.c_str());
+	for (int kk=0; kk<steps/chunk_size; kk++) {
+	
+		int neefl=6; // number of elements in each file line
+		vector<double> particle_data_array(neefl*chunk_size, 0.0);
+	
+		double* ptr;
+		ptr=&particle_data_array[0];
 
-	// array einlesen
-	for (int i=0; i<steps; i++) {
-		for (int j=i*neefl; j<(i+1)*neefl; j++) { // neefl=number of elements in each file line
-			particle_data << particle_data_array[j] << '\t'; // possibly use << setw(15) or so
+		// time evolution
+		for (int j=0; j<chunk_size; j++) {
+			ptr=sys.Evolve(ptr);
 		}
-		particle_data << '\n';
-	}
+	
+		// open file
+		ofstream particle_data;
+	    	ostringstream FileNameStream;
+	    	FileNameStream << "data/particle_" << k << "_data_" << kk << ".txt";
+	    	string FileName = FileNameStream.str();
+	    	particle_data.open(FileName.c_str());
 
-	particle_data.close();
+		// array einlesen
+		for (int i=0; i<chunk_size; i++) {
+			for (int j=i*neefl; j<(i+1)*neefl; j++) { // neefl=number of elements in each file line
+				particle_data << particle_data_array[j] << '\t'; // possibly use << setw(15) or so
+			}
+			particle_data << '\n';
+		}
+
+		particle_data.close();
+	
+	}
 	
 }
 
