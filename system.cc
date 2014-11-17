@@ -13,8 +13,8 @@ using namespace std;
 
 // Systemkonstanten
 const unsigned int N=300; // Anzahl Gittermassen
-const unsigned int steps=1e4; // Anzahl Zeitschritte
-const unsigned int chunk_size=1e3; // size of chunks the evolution is broken-up into
+const unsigned int steps=5e5; // Anzahl Zeitschritte
+const unsigned int chunk_size=steps/10; // size of chunks the evolution is broken-up into
 const unsigned int n=1; // Energielevel
 const double a=1.0; // Boxlaenge
 const double L=a/(N+1); // Abstand Gittermassen
@@ -28,9 +28,9 @@ double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
 int start_index=36.0; // Anfangsposition Teilchen
 const unsigned int resol=1; // Raeumliche Aufloesung Anfangswerte
 double pos_0s[resol]={start_index};
-double excitation=0.1; // Anfangsanregung Gitter
+double excitation=0.5; // Anfangsanregung Gitter
 
-double delta_t_0=8.0;
+double delta_t_0=3.0; // mind. 16+2=18 --- stimmt nicht: 6 mit Energie 0.1 funktioniert auch
 
 // Vektoren und Matrizen
 vector<double> EigVals(N);
@@ -62,6 +62,7 @@ class System {
 	
 	// Teilchen
 	double pos;
+	int index;
 	double v;
 	
 	// Zeit
@@ -78,7 +79,9 @@ class System {
 	double* wdot;
 	
 	// Methoden
-	double Collision(double, double, double, double);
+	double Collide(double, double, double, double);
+	int Move();
+	int Bounce();
 	double Oscillate(int, double);
 	double* Evolve(double*);
 };
@@ -86,9 +89,10 @@ class System {
 // initializing
 System::System(double delta_t_0, double pos_0, double v_0, double xdot_index_0, double* y_0, double* ydot_0) {
 	pos=pos_0;
+	index=round(pos_0/L) - 1;
 	v=v_0;
 	
-	delta_t=delta_t_0; // mind. 16+2=18
+	delta_t=delta_t_0; 
 	xdot_index=xdot_index_0;
 	
 	y=new double[N];
@@ -102,10 +106,77 @@ System::System(double delta_t_0, double pos_0, double v_0, double xdot_index_0, 
 }
 
 // destructor
-System::~System() {}
+System::~System() {
+	for (int i=0; i<500; i++) {
+		cout << y[i] << '\t';
+	}
+	cout << '\n';
+	cout << '\n';
+}
 
-double System::Collision(double m1, double v1, double m2, double v2) {
+double System::Collide(double m1, double v1, double m2, double v2) {
 	return 2*((m1*v1 + m2*v2)/(m1 + m2)) - v1;
+}
+
+int System::Move() {
+	// Position updaten
+	//double c=sqrt(0.125);
+	pos+=v*delta_t;
+
+	// Reflektion
+	int B=floor(pos/a);
+	if ((B % 2) == 0) { // gerade
+		pos=pos - B*a;
+		// v bleibt
+	}
+	else { // ungerade
+		pos=a - (pos - B*a);
+		v=-v;
+	}
+	
+	// Index updaten
+	index=round(pos/L) - 1;
+	
+	// Spezialfall Enden - koennte geaendert werden... Teilchen nicht zum letzten Gitterpunkt setzen, sondern mit der Wand stossen lassen...
+	if (index== N) index-=1; // rechts
+	if (index==-1) index+=1; // links
+	
+	return B;
+}
+
+int System::Bounce() {
+	// Index updaten
+	int sign_v;
+	if (v > 0) {
+		sign_v=1;
+	}
+	else if (v < 0) {
+		sign_v=-1;
+	}
+	else {
+		sign_v=1e-15;
+		cout << "Watch out: v has become zero..." << '\n';
+	}
+	index+=sign_v;
+	
+	delta_t=L/(sign_v*v);
+	
+	// Spezialfall Enden
+	if (index==N) { 
+		index-=1; // rechts
+		delta_t=2*delta_t;
+		v=-v;
+	}
+	if (index==-1) {
+		index+=1; // links
+		delta_t=2*delta_t;
+		v=-v;
+	}
+
+	// update position
+	pos=(index + 1)*L; // pos+=sign_v*L
+
+	return 0;
 }
 
 double System::Oscillate(int ind, double del_t) {
@@ -116,7 +187,7 @@ double System::Oscillate(int ind, double del_t) {
 		wdot[i]=ydot[i]*cos(sqrt(-EigVals[i])*del_t) - y[i]*(sqrt(-EigVals[i]))*sin(sqrt(-EigVals[i])*del_t);
 		
 		// compute next lattice velocity
-	#pragma ordered
+		#pragma ordered
 		next+=T[ind][i]*wdot[i];
 	}
 	
@@ -138,17 +209,12 @@ double System::Oscillate(int ind, double del_t) {
 
 double* System::Evolve(double* arr) {
 
-	int index=round(pos/L) - 1;
-	// Spezialfall Enden -------------------- MUST BE REVISITED... NOT OKAY TO PUT PARTICLE AWAY FROM BOUNDARY?
-	if (index== N) index-=1; // rechts
-	if (index==-1) index+=1; // links
-
 	// neue Geschwindigkeiten berechnen
 	double w=v; // temporarily copy v
-	v=this->Collision(M, v, m, xdot_index);
+	v=this->Collide(M, v, m, xdot_index);
 	
 	double ww_pre=xdot_index; // save xdot_index before collision
-	xdot_index=this->Collision(m, xdot_index, M, w); // use w
+	xdot_index=this->Collide(m, xdot_index, M, w); // use w
 	double ww_post=xdot_index; // save xdot_index after collision but before oscillation
 	
 	// ydot updaten
@@ -157,26 +223,8 @@ double* System::Evolve(double* arr) {
 		ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
 	}
 	
-	// Position updaten
-	pos+=v*delta_t;
-
-	// Reflektion
-	int b=floor(pos/a);
-	if ((b % 2) == 0) { // gerade
-		pos=pos - b*a;
-		// v bleibt
-	}
-	else { // ungerade
-		pos=a - (pos - b*a);
-		v=-v;
-	}
-	
-	// Index updaten
-	index=round(pos/L) - 1;
-	
-	// Spezialfall Enden -------------------- MUST BE REVISITED... NOT OKAY TO PUT PARTICLE AWAY FROM BOUNDARY?
-	if (index== N) index-=1; // rechts
-	if (index==-1) index+=1; // links
+	// move particle
+	int b=this->Move();
 	
 	// Gitter weiterentwickeln
 	xdot_index=this->Oscillate(index, delta_t);
@@ -217,7 +265,7 @@ double xdot_0[N]={};
 double yy_0[N]={};
 double yydot_0[N]={};
 
-yydot_0[n-1]=excitation;//15.0;//0.1118;//0.005;
+yydot_0[n-1]=excitation;
 
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
@@ -225,7 +273,6 @@ yydot_0[n-1]=excitation;//15.0;//0.1118;//0.005;
 			xdot_0[i]+=T[i][j]*yydot_0[j];
 			
 		}
-		//cout << xdot_0[i] << "\n";
 	}
 
 double energie=0;
@@ -297,9 +344,7 @@ for (int k=0; k<resol; k++) {
 		}
 
 		particle_data.close();
-	
 	}
-	
 }
 
 return 0;

@@ -2,7 +2,7 @@ from numpy import *
 from math import *
 import matplotlib
 import random
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 
@@ -49,17 +49,38 @@ def ScatterPlots(where, points, what='velocities'):
 				liste=strangs[strang]
 	liste1=liste[:-1]
 	liste2=liste[1:]
-	print where, points
 	liste1=liste1[where:where+points]
 	liste2=liste2[where:where+points]
 	
 	fig=plt.figure()
 	plt.scatter(liste1, liste2, s=0.1)
 	plt.title('Recursion plot - ' + what)
-	#plt.xlim(0,1); plt.ylim(0,1)
+	if what == 'positions':
+		plt.xlim(0,1); plt.ylim(0,1)
 	plt.grid(True)
 	fig.savefig('data/recur_'+what+'.png')
+	
+def Details(size, what='positions'):
+	strangs={'positions': particle_positions, 'velocities': particle_velocities, 'lattice_velocities': lattice_velocities}
+	for strang in strangs:
+			if strang == what:
+				liste=strangs[strang]
+				
+	time_start=0
+	time_end=size
+		
+	y_axis=liste[time_start:time_end-1]	
+	t_axis=xrange(0, len(y_axis))
+	fig=plt.figure(figsize=(30,5))
+	plt.plot(t_axis,y_axis)
+	if what == 'positions':
+		plt.ylim(0,1)
+	plt.grid(True)
+	
+	fig.savefig('data/'+what+'_details.png')
+	#fig.savefig('data/output_'+str(N)+'_'+str(steps)+'_'+str(delta_t)+'.png')
 
+#---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 
 constants=[]
@@ -78,6 +99,8 @@ resol=int(constants[7][2])
 delta_t=float(constants[8][2])
 print constants
 
+#---------------------------------------------------------------------------------
+
 bins=100
 bin_width=(N+1)*L/bins
 binning=[q for q in arange(0,(N+1)*L + bin_width,bin_width)]
@@ -87,13 +110,13 @@ particle_velocities=[]
 lattice_velocities=[]
 
 n1=zeros(bins); n2=zeros(bins); n3=zeros(bins)
-
+chunks_omitted=6
 for i in xrange(0,resol):
 	initial=0
 	for j in xrange(0,steps/chunk_size):
-		loc_prob1=[]; weights1=[]
-		loc_prob2=[]; weights2=[]
-		loc_prob3=[]; weights3=[]
+		loc_prob1=[0]; weights1=[0]
+		loc_prob2=[0]; weights2=[0]
+		loc_prob3=[0]; weights3=[0]
 		with open('data/particle_'+str(i)+'_data_'+str(j)+'.txt') as f:
 			for k, line in enumerate(f):
 				string=line.strip().split()
@@ -101,14 +124,14 @@ for i in xrange(0,resol):
 				particle_velocities.append(float(string[3]))
 				lattice_velocities.append(float(string[5]))
 				
-				if j == 0:
+				if j < chunks_omitted:
 					continue
 			
 				b=int(string[0])
 				final=float(string[1])
 				v=float(string[3])
 			
-				weight=1/abs(v)
+				weight=1/abs(v) # for the moving system: 1/abs(v) --- for the bouncing system: L/abs(v)
 			
 				if initial == 0:
 					initial=final
@@ -153,7 +176,7 @@ for i in xrange(0,resol):
 		
 		f.close()
 	
-		if j != 0:
+		if j >= chunks_omitted:
 			n1+=plt.hist(loc_prob1, bins=binning, normed=False, weights=weights1)[0]
 			n2+=plt.hist(loc_prob2, bins=binning, normed=False, weights=weights2)[0]
 			n3+=plt.hist(loc_prob3, bins=binning, normed=False, weights=weights3)[0]
@@ -164,8 +187,8 @@ binning=binning[:-1]
 
 fig1=plt.figure()
 plt.bar(binning,n1,bin_width)
-plt.bar(binning,n2,bin_width,bottom=n1,color='g')
-plt.bar(binning,n3,bin_width,bottom=n1+n2,color='r')
+plt.bar(binning,n2,bin_width,bottom=n1)
+plt.bar(binning,n3,bin_width,bottom=n1+n2)
 plt.title('Location probability')
 plt.xlabel('pos')
 plt.ylabel('#')
@@ -173,15 +196,17 @@ plt.grid(True)
 plt.xlim(0.0, 1.0)
 fig1.savefig('data/histogram.png')
 #fig1.savefig('data/histogram_'+str(N)+'_'+str(steps)+'_'+str(delta_t)+'.png')
-
-
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 
 
 TimePlots(steps, steps/5)
 TimePlots(steps, steps/5, what='velocities')
-ScatterPlots(random.randint(0,steps), 10000)
-ScatterPlots(0, 10000, what='positions')
+Details(1000)
+where=random.randint(steps/2,steps)
+where=300000
+print where
+ScatterPlots(where, 200000)
+ScatterPlots(where, 200000, what='positions')
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
