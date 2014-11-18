@@ -9,7 +9,14 @@
 #include <vector>
 #include <math.h>
 
+#include <ctime>  
+#include </home/students/lappet/Documents/Masterarbeit/boost_1_56_0/boost/random.hpp>
+#include </home/students/lappet/Documents/Masterarbeit/boost_1_56_0/boost/generator_iterator.hpp>
+
 using namespace std;
+
+//typedef for random number generation; see http://www.boost.org/doc/libs/1_37_0/libs/random/random_demo.cpp
+typedef boost::mt19937 base_generator_type;
 
 // Systemkonstanten
 const unsigned int N=300; // Anzahl Gittermassen
@@ -31,6 +38,8 @@ double pos_0s[resol]={start_index};
 double excitation=0.5; // Anfangsanregung Gitter
 
 double delta_t_0=3.0; // mind. 16+2=18 --- stimmt nicht: 6 mit Energie 0.1 funktioniert auch
+
+double c=0.13;//sqrt(0.125);
 
 // Vektoren und Matrizen
 vector<double> EigVals(N);
@@ -83,7 +92,7 @@ class System {
 	int Move();
 	int Bounce();
 	double Oscillate(int, double);
-	double* Evolve(double*);
+	double* Evolve(double, double*);
 };
 
 // initializing
@@ -107,7 +116,7 @@ System::System(double delta_t_0, double pos_0, double v_0, double xdot_index_0, 
 
 // destructor
 System::~System() {
-	for (int i=0; i<500; i++) {
+	for (int i=0; i<N; i++) {
 		cout << y[i] << '\t';
 	}
 	cout << '\n';
@@ -120,7 +129,6 @@ double System::Collide(double m1, double v1, double m2, double v2) {
 
 int System::Move() {
 	// Position updaten
-	//double c=sqrt(0.125);
 	pos+=v*delta_t;
 
 	// Reflektion
@@ -207,24 +215,33 @@ double System::Oscillate(int ind, double del_t) {
 	return next;
 }
 
-double* System::Evolve(double* arr) {
+double* System::Evolve(double randy, double* arr) {
 
-	// neue Geschwindigkeiten berechnen
-	double w=v; // temporarily copy v
-	v=this->Collide(M, v, m, xdot_index);
+	// probability
+	double p=1 - (xdot_index)*(xdot_index)/(c*c);
+	//cout << p << '\n';
+	if (randy < p) {
+		// ------------------------------------------------------------------------------------------------------------------------------------------------------
+		// Collision
+		double w=v; // temporarily copy v
+		v=this->Collide(M, v, m, xdot_index);
 	
-	double ww_pre=xdot_index; // save xdot_index before collision
-	xdot_index=this->Collide(m, xdot_index, M, w); // use w
-	double ww_post=xdot_index; // save xdot_index after collision but before oscillation
+		double ww_pre=xdot_index; // save xdot_index before collision
+		xdot_index=this->Collide(m, xdot_index, M, w); // use w
+		double ww_post=xdot_index; // save xdot_index after collision but before oscillation
+		//------------------------------------------------------------------------------------------------------------------------------------------------------
 	
-	// ydot updaten
-	#pragma omp parallel for
-	for (int i=0; i<N; i++) {
-		ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
+		
+		// this part can be included into the if-clause
+		// ydot updaten
+		#pragma omp parallel for
+		for (int i=0; i<N; i++) {
+			ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
+		}
 	}
 	
-	// move particle
-	int b=this->Move();
+	// move or bounce particle
+	int b=this->Bounce();
 	
 	// Gitter weiterentwickeln
 	xdot_index=this->Oscillate(index, delta_t);
@@ -234,8 +251,8 @@ double* System::Evolve(double* arr) {
 	*arr=pos; arr++;
 	*arr=index; arr++;
 	*arr=v; arr++;
-	*arr=ww_pre; arr++;// use ww_pre
-	*arr=ww_post; arr++;// use ww_post
+	//*arr=ww_pre; arr++;// use ww_pre
+	//*arr=ww_post; arr++;// use ww_post
 	
 	return arr;
 	
@@ -271,8 +288,8 @@ yydot_0[n-1]=excitation;
 		for (int j=0; j<N; j++) {
 			x_0[i]+=T[i][j]*yy_0[j];
 			xdot_0[i]+=T[i][j]*yydot_0[j];
-			
 		}
+		cout << xdot[i] << '\n';
 	}
 
 double energie=0;
@@ -312,12 +329,23 @@ for (int k=0; k<resol; k++) {
 		xdot_index_0+=T[index_0][j]*ydot_0[j];
 	}
 	
+	//------------------------------------------------------------------------------------------------------------------------------------------------------
+	// create a random generator for each system
+	base_generator_type generator(42u);
+	// set seed to system time (probably change this to something else)
+	generator.seed(static_cast<unsigned int>(time(0)));
+	
+	// Define a uniform random number distribution which produces "double"
+	// values between 0 and 1 (0 inclusive, 1 exclusive).
+	boost::uniform_real<> uni_dist(0,1);
+	boost::variate_generator<base_generator_type&, boost::uniform_real<> > uni(generator, uni_dist);
+	//------------------------------------------------------------------------------------------------------------------------------------------------------
 	
 	System sys(delta_t_0, pos_0, v_0, xdot_index_0, y_0, ydot_0);
 	
 	for (int kk=0; kk<steps/chunk_size; kk++) {
 	
-		int neefl=6; // number of elements in each file line
+		int neefl=4; // number of elements in each file line
 		vector<double> particle_data_array(neefl*chunk_size, 0.0);
 	
 		double* ptr;
@@ -325,7 +353,7 @@ for (int k=0; k<resol; k++) {
 
 		// time evolution
 		for (int j=0; j<chunk_size; j++) {
-			ptr=sys.Evolve(ptr);
+			ptr=sys.Evolve(uni(), ptr);
 		}
 	
 		// open file

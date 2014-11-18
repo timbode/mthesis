@@ -48,7 +48,7 @@ for i in xrange(0,resol):
 		initial=0
 		for j, line in enumerate(f):
 			string=line.strip().split()
-			particle_positions.append(L*(float(string[0])+1))
+			particle_positions.append(L*(float(string[0])+1)) # Note: lines in the data file no longer equally time-spaced... plots therefore inaccurate
 			particle_velocities.append(float(string[1]))
 			lattice_velocities_pre.append(float(string[2]))
 			

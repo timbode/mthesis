@@ -122,7 +122,7 @@ for i in xrange(0,resol):
 				string=line.strip().split()
 				particle_positions.append(float(string[1])) # 1 for real positions, 2 for indices
 				particle_velocities.append(float(string[3]))
-				lattice_velocities.append(float(string[5]))
+				#lattice_velocities.append(float(string[5]))
 				
 				if j < chunks_omitted:
 					continue
@@ -131,7 +131,7 @@ for i in xrange(0,resol):
 				final=float(string[1])
 				v=float(string[3])
 			
-				weight=1/abs(v) # for the moving system: 1/abs(v) --- for the bouncing system: L/abs(v)
+				weight=L/abs(v) # for the moving system: 1/abs(v) --- for the bouncing system: L/abs(v)
 			
 				if initial == 0:
 					initial=final

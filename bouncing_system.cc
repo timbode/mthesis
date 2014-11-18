@@ -11,8 +11,8 @@
 using namespace std;
 
 // Systemkonstanten
-const unsigned int N=5000; // Anzahl Gittermassen
-const unsigned int steps=1000000; // Anzahl Zeitschritte
+const unsigned int N=300; // Anzahl Gittermassen
+const unsigned int steps=500000; // Anzahl Zeitschritte
 const unsigned int n=1; // Energielevel
 const double a=1.0; // Boxlaenge
 const double L=a/(N+1); // Abstand Gittermassen
@@ -21,10 +21,10 @@ const double m=1e+10*M; // Gitterteilchenmasse
 const double k=1e+20;// Federkonstante
 
 double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
-int start_index=2555; // Anfangsposition Teilchen
+int start_index=36; // Anfangsposition Teilchen
 const unsigned int resol=1; // Raeumliche Aufloesung Anfangswerte
-int index_0s[resol]={start_index};//,4500,500,1000,1500}; // integers...
-double excitation=0.014; // Anfangsanregung Gitter
+int index_0s[resol]={start_index}; // integers...
+double excitation=5.0; // Anfangsanregung Gitter
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -211,7 +211,7 @@ double xdot_0[N]={};
 double yy_0[N]={};
 double yydot_0[N]={};
 
-excitation=L/(T[0][start_index]*2*(2*M_PI/sqrt(-EigVals[n]) + 0.25*2*M_PI/sqrt(-EigVals[n])));
+//excitation=L/(T[0][start_index]*2*(2*M_PI/sqrt(-EigVals[n]) + 0.25*2*M_PI/sqrt(-EigVals[n])));
 yydot_0[n-1]=excitation;
 
 for (int i=0; i<N; i++) {
