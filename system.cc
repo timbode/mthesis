@@ -9,37 +9,26 @@
 #include <vector>
 #include <math.h>
 
-#include <ctime>  
-#include </home/students/lappet/Documents/Masterarbeit/boost_1_56_0/boost/random.hpp>
-#include </home/students/lappet/Documents/Masterarbeit/boost_1_56_0/boost/generator_iterator.hpp>
-
 using namespace std;
 
-//typedef for random number generation; see http://www.boost.org/doc/libs/1_37_0/libs/random/random_demo.cpp
-typedef boost::mt19937 base_generator_type;
-
 // Systemkonstanten
-const unsigned int N=300; // Anzahl Gittermassen
-const unsigned int steps=5e5; // Anzahl Zeitschritte
+const unsigned int N=1000; // Anzahl Gittermassen
+const unsigned int steps=1e6; // Anzahl Zeitschritte
 const unsigned int chunk_size=steps/10; // size of chunks the evolution is broken-up into
-const unsigned int n=1; // Energielevel
 const double a=1.0; // Boxlaenge
 const double L=a/(N+1); // Abstand Gittermassen
-const double h=1.0; // Wirkungsquantum //6.62606957*1e-34;
 const double M=1.0; // Teilchenmasse
-const double m=1e+4*M; // Gitterteilchenmasse
-const double E_0=n*n*h*h/(8*M*a*a); // Energie
-const double k=(-1)*(1/((cos(n*M_PI/(N+1)) - 1)))*((m*h*h*pow(M_PI,2)*pow(n,4))/(32*M*M*pow(a,4)));//(N+1)*(N+1)*m*E_0/(2*M*a*a);// Federkonstante 
+const double m=M/N; // Gitterteilchenmasse
+const double k=6.37614;// Federkonstante 
 
-double v_0=0.0; // Anfangsgeschwindigkeit Teilchen
-int start_index=36.0; // Anfangsposition Teilchen
+double v_0=1.0; // Anfangsgeschwindigkeit Teilchen
+int start_pos=36; // Anfangsposition Teilchen
 const unsigned int resol=1; // Raeumliche Aufloesung Anfangswerte
-double pos_0s[resol]={start_index};
-double excitation=0.5; // Anfangsanregung Gitter
+double pos_0s[resol];
 
-double delta_t_0=3.0; // mind. 16+2=18 --- stimmt nicht: 6 mit Energie 0.1 funktioniert auch
+double excitation=0.0; // Anfangsanregung Gitter
 
-double c=0.13;//sqrt(0.125);
+double delta_t_0=3.0; // Wiederkehrdauer 
 
 // Vektoren und Matrizen
 vector<double> EigVals(N);
@@ -49,7 +38,6 @@ vector< vector<double> > T(N,vector<double>(N));
 void TridiagToeplitz() {
 	for (int i=0; i<N; i++) {
 		EigVals[i]=(2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1);
-		
 		double norm=0;
 		for (int j=0; j<N; j++) {
 			norm+=sin((j+1)*M_PI*(i+1)/(N+1))*sin((j+1)*M_PI*(i+1)/(N+1));
@@ -59,7 +47,6 @@ void TridiagToeplitz() {
 			T[j][i]=sin((j+1)*M_PI*(i+1)/(N+1))/norm;
 		}
 	}
-	
 }
 
 class System {
@@ -92,7 +79,7 @@ class System {
 	int Move();
 	int Bounce();
 	double Oscillate(int, double);
-	double* Evolve(double, double*);
+	double* Evolve(double*);
 };
 
 // initializing
@@ -117,7 +104,7 @@ System::System(double delta_t_0, double pos_0, double v_0, double xdot_index_0, 
 // destructor
 System::~System() {
 	for (int i=0; i<N; i++) {
-		cout << y[i] << '\t';
+		cout << y[i]*y[i] + ydot[i]*ydot[i] << '\t';
 	}
 	cout << '\n';
 	cout << '\n';
@@ -129,6 +116,7 @@ double System::Collide(double m1, double v1, double m2, double v2) {
 
 int System::Move() {
 	// Position updaten
+	//double c=sqrt(0.125);
 	pos+=v*delta_t;
 
 	// Reflektion
@@ -215,33 +203,24 @@ double System::Oscillate(int ind, double del_t) {
 	return next;
 }
 
-double* System::Evolve(double randy, double* arr) {
+double* System::Evolve(double* arr) {
 
-	// probability
-	double p=1 - (xdot_index)*(xdot_index)/(c*c);
-	//cout << p << '\n';
-	if (randy < p) {
-		// ------------------------------------------------------------------------------------------------------------------------------------------------------
-		// Collision
-		double w=v; // temporarily copy v
-		v=this->Collide(M, v, m, xdot_index);
+	// neue Geschwindigkeiten berechnen
+	double w=v; // temporarily copy v
+	v=this->Collide(M, v, m, xdot_index);
 	
-		double ww_pre=xdot_index; // save xdot_index before collision
-		xdot_index=this->Collide(m, xdot_index, M, w); // use w
-		double ww_post=xdot_index; // save xdot_index after collision but before oscillation
-		//------------------------------------------------------------------------------------------------------------------------------------------------------
+	double ww_pre=xdot_index; // save xdot_index before collision
+	xdot_index=this->Collide(m, xdot_index, M, w); // use w
+	double ww_post=xdot_index; // save xdot_index after collision but before oscillation
 	
-		
-		// this part can be included into the if-clause
-		// ydot updaten
-		#pragma omp parallel for
-		for (int i=0; i<N; i++) {
-			ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
-		}
+	// ydot updaten
+	#pragma omp parallel for
+	for (int i=0; i<N; i++) {
+		ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
 	}
 	
-	// move or bounce particle
-	int b=this->Bounce();
+	// move particle
+	int b=this->Move();
 	
 	// Gitter weiterentwickeln
 	xdot_index=this->Oscillate(index, delta_t);
@@ -250,12 +229,11 @@ double* System::Evolve(double randy, double* arr) {
 	*arr=b; arr++;
 	*arr=pos; arr++;
 	*arr=index; arr++;
-	*arr=v; arr++;
-	//*arr=ww_pre; arr++;// use ww_pre
-	//*arr=ww_post; arr++;// use ww_post
+	*arr=v; arr++; // here, v must be saved for the weighting
+	*arr=ww_pre; arr++;// use ww_pre
+	*arr=ww_post; arr++;// use ww_post
 	
 	return arr;
-	
 	
 	// Dringend beachten: Das Teilchen fliegt mit der hier gespeicherten Geschw. v vom vorigen Ort zum hier gespeicherten Ort.
 	// Der Index gehoert zum vorigen Ort, weil er vor dem Update der Position gesetzt wird.
@@ -276,30 +254,6 @@ int main() {
 // Matrizen erzeugen
 TridiagToeplitz();
 
-// Anfangswerte Gitter
-double x_0[N]={};
-double xdot_0[N]={};
-double yy_0[N]={};
-double yydot_0[N]={};
-
-yydot_0[n-1]=excitation;
-
-	for (int i=0; i<N; i++) {
-		for (int j=0; j<N; j++) {
-			x_0[i]+=T[i][j]*yy_0[j];
-			xdot_0[i]+=T[i][j]*yydot_0[j];
-		}
-		cout << xdot[i] << '\n';
-	}
-
-double energie=0;
-	for (int i=0; i<N; i++) {
-			energie+=0.5*m*xdot_0[i]*xdot_0[i];
-	}
-	
-cout << "Energie: " << energie <<", E_0: " << E_0 << '\n';
-cout << '\n';
-
 ofstream system_info;
 system_info.open("data/system_info.txt");
 
@@ -315,11 +269,13 @@ system_info << "# delta_t: " << delta_t_0 << '\n';
 
 system_info.close();
 
+// specify starting positions
+for (int i=0; i<resol; i++) pos_0s[i]=i+1;
+
 for (int k=0; k<resol; k++) {
 	// must be reset because in the initialization the System pointers are set to these arrays
 	double y_0[N]={};
 	double ydot_0[N]={};
-	ydot_0[n-1]=excitation;
 
 	double pos_0=pos_0s[k]*L; // Anfangsposition Teilchen
 	int index_0=round(pos_0/L) - 1; // Anfangsindex Teilchen
@@ -329,23 +285,12 @@ for (int k=0; k<resol; k++) {
 		xdot_index_0+=T[index_0][j]*ydot_0[j];
 	}
 	
-	//------------------------------------------------------------------------------------------------------------------------------------------------------
-	// create a random generator for each system
-	base_generator_type generator(42u);
-	// set seed to system time (probably change this to something else)
-	generator.seed(static_cast<unsigned int>(time(0)));
-	
-	// Define a uniform random number distribution which produces "double"
-	// values between 0 and 1 (0 inclusive, 1 exclusive).
-	boost::uniform_real<> uni_dist(0,1);
-	boost::variate_generator<base_generator_type&, boost::uniform_real<> > uni(generator, uni_dist);
-	//------------------------------------------------------------------------------------------------------------------------------------------------------
 	
 	System sys(delta_t_0, pos_0, v_0, xdot_index_0, y_0, ydot_0);
 	
 	for (int kk=0; kk<steps/chunk_size; kk++) {
 	
-		int neefl=4; // number of elements in each file line
+		int neefl=6; // number of elements in each file line
 		vector<double> particle_data_array(neefl*chunk_size, 0.0);
 	
 		double* ptr;
@@ -353,7 +298,7 @@ for (int k=0; k<resol; k++) {
 
 		// time evolution
 		for (int j=0; j<chunk_size; j++) {
-			ptr=sys.Evolve(uni(), ptr);
+			ptr=sys.Evolve(ptr);
 		}
 	
 		// open file
