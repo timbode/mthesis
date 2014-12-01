@@ -1,1 +1,1 @@
-Folder for the twodimensional lattice.
+Folder for the twodimensional lattice. Started on 1 December.
