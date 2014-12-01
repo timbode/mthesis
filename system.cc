@@ -6,29 +6,13 @@
 #include <string>
 #include <cstring>
 #include <omp.h>
-#include <vector>
 #include <math.h>
+#include <vector>
+
+#include "system_constants.hh"
 
 using namespace std;
-
-// Systemkonstanten
-const unsigned int N=1000; // Anzahl Gittermassen
-const unsigned int steps=1e6; // Anzahl Zeitschritte
-const unsigned int chunk_size=steps/10; // size of chunks the evolution is broken-up into
-const double a=1.0; // Boxlaenge
-const double L=a/(N+1); // Abstand Gittermassen
-const double M=1.0; // Teilchenmasse
-const double m=M/N; // Gitterteilchenmasse
-const double k=6.37614;// Federkonstante 
-
-double v_0=1.0; // Anfangsgeschwindigkeit Teilchen
-int start_pos=36; // Anfangsposition Teilchen
-const unsigned int resol=1; // Raeumliche Aufloesung Anfangswerte
-double pos_0s[resol];
-
-double excitation=0.0; // Anfangsanregung Gitter
-
-double delta_t_0=3.0; // Wiederkehrdauer 
+using namespace SystemConstants;
 
 // Vektoren und Matrizen
 vector<double> EigVals(N);
@@ -38,6 +22,7 @@ vector< vector<double> > T(N,vector<double>(N));
 void TridiagToeplitz() {
 	for (int i=0; i<N; i++) {
 		EigVals[i]=(2*k/m)*(cos((i+1)*M_PI/(N+1)) - 1);
+		if (i==0) cout << 2*M_PI/sqrt(-EigVals[i]) << '\n';
 		double norm=0;
 		for (int j=0; j<N; j++) {
 			norm+=sin((j+1)*M_PI*(i+1)/(N+1))*sin((j+1)*M_PI*(i+1)/(N+1));
@@ -88,7 +73,7 @@ System::System(double delta_t_0, double pos_0, double v_0, double xdot_index_0, 
 	index=round(pos_0/L) - 1;
 	v=v_0;
 	
-	delta_t=delta_t_0; 
+	delta_t=(2*k/m)*(cos(M_PI/(N+1)) - 1);
 	xdot_index=xdot_index_0;
 	
 	y=new double[N];
@@ -103,11 +88,7 @@ System::System(double delta_t_0, double pos_0, double v_0, double xdot_index_0, 
 
 // destructor
 System::~System() {
-	for (int i=0; i<N; i++) {
-		cout << y[i]*y[i] + ydot[i]*ydot[i] << '\t';
-	}
-	cout << '\n';
-	cout << '\n';
+
 }
 
 double System::Collide(double m1, double v1, double m2, double v2) {
@@ -116,7 +97,6 @@ double System::Collide(double m1, double v1, double m2, double v2) {
 
 int System::Move() {
 	// Position updaten
-	//double c=sqrt(0.125);
 	pos+=v*delta_t;
 
 	// Reflektion
@@ -133,7 +113,7 @@ int System::Move() {
 	// Index updaten
 	index=round(pos/L) - 1;
 	
-	// Spezialfall Enden - koennte geaendert werden... Teilchen nicht zum letzten Gitterpunkt setzen, sondern mit der Wand stossen lassen...
+	// Spezialfall Enden
 	if (index== N) index-=1; // rechts
 	if (index==-1) index+=1; // links
 	
@@ -247,29 +227,29 @@ double* System::Evolve(double* arr) {
 
 int main() {
 
-//int main(int argc, char* argv[]) {
-//delta_t_0=atof(argv[1]);
-//cout << argv[1] << '\n';
-
 // Matrizen erzeugen
 TridiagToeplitz();
 
 ofstream system_info;
-system_info.open("data/system_info.txt");
+system_info.open("data/system.txt");
 
 system_info << "# N: " << N << '\n';
 system_info << "# M: " << M << '\n';
 system_info << "# m: " << m << '\n';
-system_info << "# v_0: " << v_0 << '\n';
+system_info << "# k: " << k << '\n';
 system_info << "# L: " << L << '\n'; 
+
 system_info << "# steps: " << steps << '\n';  
 system_info << "# chunk_size: " << chunk_size << '\n';
 system_info << "# resol: " << resol << '\n';
-system_info << "# delta_t: " << delta_t_0 << '\n'; 
+
+system_info << "# delta_t: " << delta_t_0 << '\n';
+system_info << "# v_0: " << v_0 << '\n'; 
 
 system_info.close();
 
 // specify starting positions
+double pos_0s[resol];
 for (int i=0; i<resol; i++) pos_0s[i]=i+1;
 
 for (int k=0; k<resol; k++) {
@@ -305,7 +285,7 @@ for (int k=0; k<resol; k++) {
 		ofstream particle_data;
 	    	ostringstream FileNameStream;
 	    	FileNameStream << "data/particle_" << k << "_data_" << kk << ".txt";
-	    	string FileName = FileNameStream.str();
+	    	string FileName=FileNameStream.str();
 	    	particle_data.open(FileName.c_str());
 
 		// array einlesen
