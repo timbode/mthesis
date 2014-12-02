@@ -3,13 +3,13 @@
 #include <vector>
 #include <math.h>
 #include <omp.h>
+#include <fstream>
 
 using namespace std;
 
 const unsigned int dim=2; // dimensions=2,3 
-const unsigned int N=3; // Nx...xN grid
+const unsigned int N=4; // (N-1)x...x(N-1) grid for (N-1) > dim - outer points are held fixed, so the effective grid size is reduced
 const unsigned int Max=pow(N, dim)*dim; // length of arrays
-const double L=1.0; // distance between nearest neighbours
 const double m=1.0; // mass of grid point
 const double kk=1.0; // spring constant (kk in order to avoid ambiguities with indices below)
 
@@ -31,10 +31,12 @@ class Verlet {
 		// methods
 		int Index(int, int, int);
 		double NearestNeighbours(int, int, int);
-		double* Evolve2D();
+		void Step2D();
+		void Evolve2D();
 		int Index(int, int, int, int);
 		double NearestNeighbours(int, int, int, int);
-		double* Evolve3D();
+		void Step3D();
+		void Evolve3D();
 		
 }; // do not forget the funny semicolon down here...
 
@@ -52,6 +54,7 @@ Verlet::Verlet(double T_0, double dt_0) {
 			for (int j=0; j<N; j++) {
 				  r0[Index(i, j, 0)]=i;   r0[Index(i, j, 1)]=j;
 				  r1[Index(i, j, 0)]=i;   r1[Index(i, j, 1)]=j;
+				  r2[Index(i, j, 0)]=i;   r2[Index(i, j, 1)]=j;
 				rdot[Index(i, j, 0)]=0; rdot[Index(i, j, 1)]=0;
 			}
 		}
@@ -62,6 +65,7 @@ Verlet::Verlet(double T_0, double dt_0) {
 				for (int k=0; k<N; k++) {
 					  r0[Index(i, j, k, 0)]=i;   r0[Index(i, j, k, 1)]=j;   r0[Index(i, j, k, 2)]=k; // does not he run nicely through the arrays in this way?
 					  r1[Index(i, j, k, 0)]=i;   r1[Index(i, j, k, 1)]=j;   r1[Index(i, j, k, 2)]=k;
+					  r2[Index(i, j, k, 0)]=i;   r2[Index(i, j, k, 1)]=j;   r2[Index(i, j, k, 2)]=k;
 					rdot[Index(i, j, k, 0)]=0; rdot[Index(i, j, k, 1)]=0; rdot[Index(i, j, k, 2)]=0;
 				}
 			}
@@ -72,11 +76,11 @@ Verlet::Verlet(double T_0, double dt_0) {
 
 Verlet::Verlet(double T_0, double dt_0, double* r0_0, double* r1_0, double* rdot_0) {
 	T=T_0; dt=dt_0;
-	r0  =new double[Max];
-	r1  =new double[Max];
-	r2  =new double[Max];
-	rdot=new double[Max];
-	r0=r0_0; r1=r1_0; rdot=rdot_0;
+	//r0  =new double[Max];
+	//r1  =new double[Max];
+	//r2  =new double[Max];
+	//rdot=new double[Max];
+	r0=r0_0; r1=r1_0; r2=r1_0; rdot=rdot_0;
 }
 
 Verlet::~Verlet() {
@@ -93,44 +97,28 @@ double Verlet::NearestNeighbours(int I, int J, int Alpha) {
 	return r1[Index(I-1, J, Alpha)] + r1[Index(I+1, J, Alpha)] + r1[Index(I, J-1, Alpha)] + r1[Index(I, J+1, Alpha)] ;
 }
 
-double* Verlet::Evolve2D() {
-		int i=0; int j=0;
-		int alpha=0;
-		
-		for (int q=0; q<Max; q++) {
-			alpha=q%N;
-			j=((q-alpha)/N)%N;
-			if ((j==0) || (j==(N-1))) continue;
-			i=(q-alpha-j*N)/(N*N);
-			if ((i==0) || (i==(N-1))) continue;
-			
-			r2[Index(i, j, alpha)]=2*r1[Index(i, j, alpha)] - r0[Index(i, j, alpha)] - (kk*dt*dt/m)*(r1[Index(i, j, alpha)] - NearestNeighbours(i, j, alpha));
-			
-			// grab velocities
-			rdot[Index(i, j, alpha)]=(r2[Index(i, j, alpha)] - r1[Index(i, j, alpha)])/dt;
-
-		}
-
-		/*
-		// we leave outer points unchanged in any case (ie. i=1, i<(N-1) etc.) - the square box is then completely defined
-		#pragma omp parallel for collapse(4)
+void Verlet::Step2D() {
+		// we leave outer points unchanged in any case (therefore i=1, i<(N-1) etc.) - the square box is then completely defined
+		//#pragma omp parallel for collapse(3)
 		for (int i=1; i<(N-1); i++) {
 			for (int j=1; j<(N-1); j++) {
 				for (int alpha=0; alpha<dim; alpha++) {
-					r2[Index(i, j, alpha)]=2*r1[Index(i, j, alpha)] - r0[Index(i, j, alpha)] - (kk*dt*dt/m)*(r1[Index(i, j, alpha)] - NearestNeighbours(i, j, alpha));
+					int index=Index(i, j, alpha);
+					r2[index]=2*r1[index] - r0[index] - (kk*dt*dt/m)*(r1[index] - NearestNeighbours(i, j, alpha));
 					
 					// grab velocities
-					rdot[Index(i, j, alpha)]=(r2[Index(i, j, alpha)] - r1[Index(i, j, alpha)])/dt;
+					rdot[index]=(r2[index] - r1[index])/dt;
 				}
 			}
 		}
 		
-		*/
-		
-		
 		r0=r1; r1=r2;
-		
-		return r2;
+}
+
+void Verlet::Evolve2D() {
+	for (int t=0; t<T/dt; t++) {
+		this->Step2D();
+	}
 }
 // ------------------------------------------------------------------------------------------------
 
@@ -146,45 +134,28 @@ double Verlet::NearestNeighbours(int I, int J, int K, int Alpha) {
 	return r1[Index(I-1, J, K, Alpha)] + r1[Index(I+1, J, K, Alpha)] + r1[Index(I, J-1, K, Alpha)] + r1[Index(I, J+1, K, Alpha)] + r1[Index(I, J, K-1, Alpha)] + r1[Index(I, J, K+1, Alpha)];
 }
 
-double* Verlet::Evolve3D() {
-		int i=0; int j=0; int k=0;
-		int alpha=0;
-		
-		for (int q=0; q<Max; q++) {
-			alpha=q%N;
-			k=((q-alpha)/N)%N; // perhaps optimize here... q-alpha, N*N etc.
-			if ((k==0) || (k==(N-1))) continue; // we leave outer points unchanged in any case - the square box is then completely defined
-			j=((q-alpha-k*N)/(N*N))%N;
-			if ((j==0) || (j==(N-1))) continue;
-			i=(q-alpha-k*N-j*N*N)/(N*N*N);
-			if ((i==0) || (i==(N-1))) continue;
-			
-			r2[Index(i, j, k, alpha)]=2*r1[Index(i, j, k, alpha)] - r0[Index(i, j, k, alpha)] - (kk*dt*dt/m)*(r1[Index(i, j, k, alpha)] - NearestNeighbours(i, j, k, alpha));
-			
-			// grab velocities
-			rdot[Index(i, j, k, alpha)]=(r2[Index(i, j, k, alpha)] - r1[Index(i, j, k, alpha)])/dt;
-		}
-		
-		/*
-		// we leave outer points unchanged in any case (ie. i=1, i<(N-1) etc.) - the square box is then completely defined
+void Verlet::Step3D() {
 		#pragma omp parallel for collapse(4)
 		for (int i=1; i<(N-1); i++) {
 			for (int j=1; j<(N-1); j++) {
 				for (int k=1; k<(N-1); k++) {
 					for (int alpha=0; alpha<dim; alpha++) {
-						r2[Index(i, j, k, alpha)]=2*r1[Index(i, j, k, alpha)] - r0[Index(i, j, k, alpha)] - (kk*dt*dt/m)*(r1[Index(i, j, k, alpha)] - NearestNeighbours(i, j, k, alpha));
-						// grab velocities
-						rdot[Index(i, j, k, alpha)]=(r2[Index(i, j, k, alpha)] - r1[Index(i, j, k, alpha)])/dt;
+						int index=Index(i, j, alpha);
+						r2[index]=2*r1[index] - r0[index] - (kk*dt*dt/m)*(r1[index] - NearestNeighbours(i, j, k, alpha));
+						
+						rdot[index]=(r2[index] - r1[index])/dt;
 					}
 				}
 			}
 		}
 		
-		*/
-		
 		r0=r1; r1=r2;
-		
-		return r2;
+}
+
+void Verlet::Evolve3D() {
+	for (int t=0; t<T/dt; t++) {
+		this->Step3D();
+	}
 }
 // ------------------------------------------------------------------------------------------------
 
@@ -195,7 +166,62 @@ double* Verlet::Evolve3D() {
 
 int main() {
 
+int time_steps=10;
+double T=0.05;
 
+Verlet grid(0.05, 0.0001);
 
+for (int i=0; i<N; i++) {
+	for (int j=0; j<N; j++) {
+		for (int alpha=0; alpha<dim; alpha++) {
+			cout << grid.r2[grid.Index(i, j, alpha)] << ", ";					
+		}
+	}
+}
+cout << '\n';
+//grid.rdot[grid.Index(1, 1, 0)]=1.0;
+//grid=Verlet(0.05, 0.0001, grid.r1, grid.r2, grid.rdot);
+
+// open file
+ofstream grid_data;
+grid_data.open("data/grid_data.txt");
+
+for (int tt=0; tt<time_steps; tt++) {
+	for (int i=0; i<N; i++) {
+		for (int j=0; j<N; j++) {
+			for (int alpha=0; alpha<dim; alpha++) {
+				//grid_data << grid.r2[grid.Index(i, j, alpha)] << ",";					
+			}
+			grid_data << '\t';
+		}
+	}
+	grid_data << '\n';
+	//grid.Evolve2D();
+	//grid=Verlet(0.05, 0.0001, grid.r1, grid.r2, grid.rdot);	
+}
+grid_data.close();
+/*
+Verlet grid(0.05, 0.0001);
+grid.Evolve2D();
+grid=Verlet(0.05, 0.0001, grid.r1, grid.r2, grid.rdot);
+grid.Evolve2D();
+for (int i=0; i<N; i++) {
+	for (int j=0; j<N; j++) {
+		for (int alpha=0; alpha<dim; alpha++) {
+			cout << grid.r0[grid.Index(i, j, alpha)] << ", ";					
+		}
+	}
+}
+cout << '\n';
+
+for (int i=0; i<N; i++) {
+	for (int j=0; j<N; j++) {
+		for (int alpha=0; alpha<dim; alpha++) {
+			cout << grid.r2[grid.Index(i, j, alpha)] << ", ";					
+		}
+	}
+}
+cout << '\n';
+*/
 return 0;
 }
