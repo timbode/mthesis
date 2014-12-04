@@ -1,4 +1,4 @@
-// Verlet method for a twodimensional grid
+// Verlet method for a multidimensional grid
 #include <iostream>
 #include <vector>
 #include <math.h>
@@ -8,10 +8,10 @@
 using namespace std;
 
 const unsigned int dim=2; // dimensions=2,3 
-const unsigned int N=4; // (N-1)x...x(N-1) grid for (N-1) > dim - outer points are held fixed, so the effective grid size is reduced
+const unsigned int N=3; // (N-1)x...x(N-1) grid for (N-1) > dim - outer points are held fixed, so the effective grid size is reduced
 const unsigned int Max=pow(N, dim)*dim; // length of arrays
-const double m=1.0; // mass of grid point
-const double kk=1.0; // spring constant (kk in order to avoid ambiguities with indices below)
+const double m=100.0; // mass of grid point
+const double kk=1e3; // spring constant (kk in order to avoid ambiguities with indices below)
 
 // ------------------------------------------------------------------------------------------------
 
@@ -59,11 +59,12 @@ Verlet::Verlet(double T_0, double dt_0) {
 			}
 		}
 	}
+	
 	if (dim==3) {
 		for (int i=0; i<N; i++) {
 			for (int j=0; j<N; j++) {
 				for (int k=0; k<N; k++) {
-					  r0[Index(i, j, k, 0)]=i;   r0[Index(i, j, k, 1)]=j;   r0[Index(i, j, k, 2)]=k; // does not he run nicely through the arrays in this way?
+					  r0[Index(i, j, k, 0)]=i;   r0[Index(i, j, k, 1)]=j;   r0[Index(i, j, k, 2)]=k;
 					  r1[Index(i, j, k, 0)]=i;   r1[Index(i, j, k, 1)]=j;   r1[Index(i, j, k, 2)]=k;
 					  r2[Index(i, j, k, 0)]=i;   r2[Index(i, j, k, 1)]=j;   r2[Index(i, j, k, 2)]=k;
 					rdot[Index(i, j, k, 0)]=0; rdot[Index(i, j, k, 1)]=0; rdot[Index(i, j, k, 2)]=0;
@@ -90,29 +91,29 @@ Verlet::~Verlet() {
 // ------------------------------------------------------------------------------------------------
 // twodimensional case
 int Verlet::Index(int I, int J, int Alpha) {
-	return I*N*N + J*N + Alpha;
+	return I*N + J + Alpha*N*N;
 }
 
 double Verlet::NearestNeighbours(int I, int J, int Alpha) {
-	return r1[Index(I-1, J, Alpha)] + r1[Index(I+1, J, Alpha)] + r1[Index(I, J-1, Alpha)] + r1[Index(I, J+1, Alpha)] ;
+	return r1[Index(I-1, J, Alpha)] + r1[Index(I+1, J, Alpha)] + r1[Index(I, J-1, Alpha)] + r1[Index(I, J+1, Alpha)];
 }
 
 void Verlet::Step2D() {
 		// we leave outer points unchanged in any case (therefore i=1, i<(N-1) etc.) - the square box is then completely defined
 		//#pragma omp parallel for collapse(3)
-		for (int i=1; i<(N-1); i++) {
-			for (int j=1; j<(N-1); j++) {
-				for (int alpha=0; alpha<dim; alpha++) {
+		for (int alpha=0; alpha<dim; alpha++) {
+			for (int i=1; i<(N-1); i++) {
+				for (int j=1; j<(N-1); j++) {
 					int index=Index(i, j, alpha);
-					r2[index]=2*r1[index] - r0[index] - (kk*dt*dt/m)*(r1[index] - NearestNeighbours(i, j, alpha));
+					r2[index]=2*r1[index] - r0[index] - (kk*dt*dt/m)*(2*dim*r1[index] - NearestNeighbours(i, j, alpha));
 					
 					// grab velocities
-					rdot[index]=(r2[index] - r1[index])/dt;
+					rdot[index]=(r2[index] - r0[index])/(2*dt);
 				}
 			}
 		}
 		
-		r0=r1; r1=r2;
+		r0=r1; r1=r2; r2=r0;
 }
 
 void Verlet::Evolve2D() {
@@ -127,7 +128,7 @@ void Verlet::Evolve2D() {
 // ------------------------------------------------------------------------------------------------
 // threedimensional case
 int Verlet::Index(int I, int J, int K, int Alpha) {
-	return I*N*N*N + J*N*N + K*N + Alpha;
+	return I*N*N + J*N + K + Alpha*N*N*N;
 }
 
 double Verlet::NearestNeighbours(int I, int J, int K, int Alpha) {
@@ -135,21 +136,21 @@ double Verlet::NearestNeighbours(int I, int J, int K, int Alpha) {
 }
 
 void Verlet::Step3D() {
-		#pragma omp parallel for collapse(4)
-		for (int i=1; i<(N-1); i++) {
-			for (int j=1; j<(N-1); j++) {
-				for (int k=1; k<(N-1); k++) {
-					for (int alpha=0; alpha<dim; alpha++) {
+		//#pragma omp parallel for collapse(4)
+		for (int alpha=0; alpha<dim; alpha++) {
+			for (int i=1; i<(N-1); i++) {
+				for (int j=1; j<(N-1); j++) {
+					for (int k=1; k<(N-1); k++) {
 						int index=Index(i, j, alpha);
-						r2[index]=2*r1[index] - r0[index] - (kk*dt*dt/m)*(r1[index] - NearestNeighbours(i, j, k, alpha));
+						r2[index]=2*r1[index] - r0[index] - (kk*dt*dt/m)*(2*dim*r1[index] - NearestNeighbours(i, j, k, alpha));
 						
-						rdot[index]=(r2[index] - r1[index])/dt;
+						rdot[index]=(r2[index] - r0[index])/(2*dt);
 					}
 				}
 			}
 		}
-		
-		r0=r1; r1=r2;
+
+		r0=r1; r1=r2; r2=r0;
 }
 
 void Verlet::Evolve3D() {
@@ -166,62 +167,33 @@ void Verlet::Evolve3D() {
 
 int main() {
 
-int time_steps=10;
-double T=0.05;
+int time_steps=1000;
+double T=0.01;
+double dt=0.0001;
 
-Verlet grid(0.05, 0.0001);
-
-for (int i=0; i<N; i++) {
-	for (int j=0; j<N; j++) {
-		for (int alpha=0; alpha<dim; alpha++) {
-			cout << grid.r2[grid.Index(i, j, alpha)] << ", ";					
-		}
-	}
-}
-cout << '\n';
-//grid.rdot[grid.Index(1, 1, 0)]=1.0;
-//grid=Verlet(0.05, 0.0001, grid.r1, grid.r2, grid.rdot);
+Verlet grid(T, dt);
+grid.r1[grid.Index(1, 1, 0)]+=0.1;
+grid.r0[grid.Index(1, 1, 0)]+=0.1;
+grid.r1[grid.Index(1, 1, 1)]+=0.1;
+grid.r0[grid.Index(1, 1, 1)]+=0.1;
 
 // open file
 ofstream grid_data;
-grid_data.open("data/grid_data.txt");
+grid_data.open("data/grid.dat");
 
 for (int tt=0; tt<time_steps; tt++) {
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<N; j++) {
 			for (int alpha=0; alpha<dim; alpha++) {
-				//grid_data << grid.r2[grid.Index(i, j, alpha)] << ",";					
+				grid_data << grid.r0[grid.Index(i, j, alpha)] << ",";					
 			}
 			grid_data << '\t';
 		}
 	}
 	grid_data << '\n';
-	//grid.Evolve2D();
-	//grid=Verlet(0.05, 0.0001, grid.r1, grid.r2, grid.rdot);	
+	grid.Evolve2D();
 }
 grid_data.close();
-/*
-Verlet grid(0.05, 0.0001);
-grid.Evolve2D();
-grid=Verlet(0.05, 0.0001, grid.r1, grid.r2, grid.rdot);
-grid.Evolve2D();
-for (int i=0; i<N; i++) {
-	for (int j=0; j<N; j++) {
-		for (int alpha=0; alpha<dim; alpha++) {
-			cout << grid.r0[grid.Index(i, j, alpha)] << ", ";					
-		}
-	}
-}
-cout << '\n';
 
-for (int i=0; i<N; i++) {
-	for (int j=0; j<N; j++) {
-		for (int alpha=0; alpha<dim; alpha++) {
-			cout << grid.r2[grid.Index(i, j, alpha)] << ", ";					
-		}
-	}
-}
-cout << '\n';
-*/
 return 0;
 }
