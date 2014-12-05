@@ -74,8 +74,8 @@ double Verlet::NearestNeighbours(int X, int Y, int Z, int Alpha) {
 }
 
 void Verlet::Evolve() {
-		//#pragma omp parallel for collapse(5)
 		for (int t=0; t<T/dt; t++) {
+			//#pragma omp parallel for collapse(4)
 			for (int alpha=0; alpha<3; alpha++) {
 				for (int x=1; x<(N_X-1); x++) {
 					for (int y=1; y<(N_Y-1); y++) {
