@@ -4,31 +4,36 @@
 
 #include <math.h>
 
+using namespace std;
+
+const double M=100.0;
+
 class Particle {
 	public:
 		 Particle(double*, double*); // constructor
 		~Particle(); // destructor
 		
-		double* r; // coordinates
-		double* v; // velocities
-		double* rr; // previous coordinates
-		double* vv; // previous velocities
+		double* R; // coordinates
+		double* V; // velocities
+		double* RR; // previous coordinates
+		double* VV; // previous velocities
 		
 		// methods
 		void Reflect(double*);
 		void FoldBack();
+		double* Collide(double, double*);
 };
 
-Particle::Particle(double * r_0, double* v_0) {
-	r=new double[3];
-	v=new double[3];
-	rr=new double[3];
-	vv=new double[3];
+Particle::Particle(double* R_0, double* V_0) {
+	R=new double[3];
+	V=new double[3];
+	RR=new double[3];
+	VV=new double[3];
 	for (int i=0; i<3; i++) {
-		r[i]=r_0[i];
-		v[i]=v_0[i];
-		rr[i]=r_0[i];
-		vv[i]=v_0[i];
+		R[i]=R_0[i];
+		V[i]=V_0[i];
+		RR[i]=R_0[i];
+		VV[i]=V_0[i];
 		
 	}
 }
@@ -42,18 +47,30 @@ void Particle::Reflect(double* n) {
 	double norm_n=sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
 	n[0]=n[0]/norm_n; n[1]=n[1]/norm_n; n[2]=n[2]/norm_n;
 	
-	// reflect v
-	double v_dot_n=v[0]*n[0]+v[1]*n[1]+v[2]*n[2];
-	v[0]=v[0]-2*v_dot_n*n[0];
-	v[1]=v[1]-2*v_dot_n*n[1];
-	v[2]=v[2]-2*v_dot_n*n[2];
+	// reflect V
+	double V_dot_n=V[0]*n[0]+V[1]*n[1]+V[2]*n[2];
+	for (int i=0; i<3; i++) {
+		V[i]=V[i]-2*V_dot_n*n[i];
+	}
 }
 
 void Particle::FoldBack() {
 	cout << N_X << '\n'; // use dimensions to describe boundary in the box case
-	if (r[0] > N_X-1) cout << r[0]-(N_X-1) << '\n';
-	if (r[1] > N_Y-1) cout << r[1]-(N_Y-1) << '\n';
-	if (r[2] > N_Z-1) cout << r[2]-(N_Z-1) << '\n';
+	if (R[0] > N_X-1) cout << R[0]-(N_X-1) << '\n';
+	if (R[1] > N_Y-1) cout << R[1]-(N_Y-1) << '\n';
+	if (R[2] > N_Z-1) cout << R[2]-(N_Z-1) << '\n';
+}
+
+double* Particle::Collide(double m, double* v) {
+	// see green notebook, 08.12.14
+	double V_prime=(M-m)/(M+m);
+	double v_prime=2*M/(M+m);
+	for (int i=0; i<3; i++) {
+		VV[i]=V[i];
+		V[i]=V_prime*(VV[i]-v[i]) + v[i];
+		v[i]=v_prime*(VV[i]-v[i]) + v[i];
+	}
+	return v;
 }
 
 #endif
