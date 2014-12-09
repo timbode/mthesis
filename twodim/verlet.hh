@@ -1,10 +1,11 @@
 // Verlet method for a multidimensional grid
-#include <iostream>
+#ifndef VERLET_H
+#define VERLET_H
+
 #include <vector>
 #include <math.h>
 #include <omp.h>
-#include <fstream>
-#include <algorithm>
+#include <algorithm> // max, min
 
 using namespace std;
 
@@ -14,6 +15,7 @@ const int N_X=3; const int N_Y=3; const int N_Z=1;
 const unsigned int Max=3*N_X*N_Y*N_Z; // length of arrays
 const double m=100.0; // mass of grid point
 const double k=1e3; // spring constant
+const double d=0.1; // diameter of grid particles
 
 // ------------------------------------------------------------------------------------------------
 
@@ -48,10 +50,10 @@ Verlet::Verlet(double T_0, double dt_0) {
 	for (int x=0; x<N_X; x++) {
 		for (int y=0; y<N_Y; y++) {
 			for (int z=min(0, N_Z); z<max(0, N_Z); z++) {
-				  r0[Index(x, y, z, 0)]=x;   r0[Index(x, y, z, 1)]=y;   r0[Index(x, y, z, 2)]=z;
-				  r1[Index(x, y, z, 0)]=x;   r1[Index(x, y, z, 1)]=y;   r1[Index(x, y, z, 2)]=z;
-				  r2[Index(x, y, z, 0)]=x;   r2[Index(x, y, z, 1)]=y;   r2[Index(x, y, z, 2)]=z;
-				rdot[Index(x, y, z, 0)]=0; rdot[Index(x, y, z, 1)]=0; rdot[Index(x, y, z, 2)]=0;
+				  r0[this->Index(x, y, z, 0)]=x;   r0[this->Index(x, y, z, 1)]=y;   r0[this->Index(x, y, z, 2)]=z;
+				  r1[this->Index(x, y, z, 0)]=x;   r1[this->Index(x, y, z, 1)]=y;   r1[this->Index(x, y, z, 2)]=z;
+				  r2[this->Index(x, y, z, 0)]=x;   r2[this->Index(x, y, z, 1)]=y;   r2[this->Index(x, y, z, 2)]=z;
+				rdot[this->Index(x, y, z, 0)]=0; rdot[this->Index(x, y, z, 1)]=0; rdot[this->Index(x, y, z, 2)]=0;
 			}
 		}
 	}
@@ -68,8 +70,8 @@ int Verlet::Index(int X, int Y, int Z, int Alpha) {
 }
 
 double Verlet::NearestNeighbours(int X, int Y, int Z, int Alpha) {
-	double S=r1[Index(X-1, Y, Z, Alpha)] + r1[Index(X+1, Y, Z, Alpha)] + r1[Index(X, Y-1, Z, Alpha)] + r1[Index(X, Y+1, Z, Alpha)];
-	if (N_Z>=3) S+=r1[Index(X, Y, Z-1, Alpha)] + r1[Index(X, Y, Z+1, Alpha)];
+	double S=r1[this->Index(X-1, Y, Z, Alpha)] + r1[this->Index(X+1, Y, Z, Alpha)] + r1[this->Index(X, Y-1, Z, Alpha)] + r1[this->Index(X, Y+1, Z, Alpha)];
+	if (N_Z>=3) S+=r1[this->Index(X, Y, Z-1, Alpha)] + r1[this->Index(X, Y, Z+1, Alpha)];
 	return S;
 }
 
@@ -80,7 +82,7 @@ void Verlet::Evolve() {
 				for (int x=1; x<(N_X-1); x++) {
 					for (int y=1; y<(N_Y-1); y++) {
 						for (int z=min(1, N_Z-1); z<max(1, N_Z-1); z++) {
-							int index=Index(x, y, z, alpha);
+							int index=this->Index(x, y, z, alpha);
 							r2[index]=2*r1[index] - r0[index] - (k*dt*dt/m)*(2*dim*r1[index] - NearestNeighbours(x, y, z, alpha));
 						
 							rdot[index]=(r2[index] - r0[index])/(2*dt);
@@ -92,45 +94,6 @@ void Verlet::Evolve() {
 			r0=r1; r1=r2; r2=r0;
 		}
 }
-// ------------------------------------------------------------------------------------------------
-
-
 
 // ------------------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------------------
-
-int main() {
-
-int time_steps=1000;
-double T=0.01;
-double dt=0.0001;
-
-Verlet grid(T, dt);
-
-grid.r1[grid.Index(1, 1, 0, 0)]+=0.01;
-grid.r0[grid.Index(1, 1, 0, 0)]+=0.01;
-grid.r1[grid.Index(1, 1, 0, 1)]+=0.01;
-grid.r0[grid.Index(1, 1, 0, 1)]+=0.01;
-
-// open file
-ofstream grid_data;
-grid_data.open("data/grid.dat");
-
-for (int tt=0; tt<time_steps; tt++) {
-	for (int x=0; x<N_X; x++) {
-		for (int y=0; y<N_Y; y++) {
-			for (int z=0; z<N_Z; z++) {
-				for (int alpha=0; alpha<3; alpha++) {
-					grid_data << grid.r0[grid.Index(x, y, z, alpha)] << ",";					
-				}
-				grid_data << '\t';
-			}
-		}
-	}
-	grid_data << '\n';
-	grid.Evolve();
-}
-grid_data.close();
-
-return 0;
-}
+#endif
