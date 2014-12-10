@@ -3,6 +3,7 @@
 #define PARTICLE_H
 
 #include <math.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -27,7 +28,9 @@ class Particle {
 		void Reflect(double*);
 		void FoldBack();
 		double Touch(double*, int*);
-		double* Collide(double, int*, double*);
+		double Hit(double*, double*);
+		double Hit(double*, int*);
+		double* Collide(double, double*, double*);
 		double Bounce(double);
 		void Evolve(Verlet*);
 };
@@ -37,7 +40,7 @@ Particle::Particle(double* R_0, double* V_0) {
 	V=new double[3];
 	RR=new double[3];
 	VV=new double[3];
-	for (int i=0; i<3; i++) {
+	for (int i=0; i<3; ++i) {
 		R[i]=R_0[i];
 		V[i]=V_0[i];
 		RR[i]=R_0[i];
@@ -85,7 +88,7 @@ void Particle::Reflect(double* n) {
 		
 	// reflect V
 	double V_dot_n=this->Dot(V, n);
-	for (int i=0; i<3; i++) {
+	for (int i=0; i<3; ++i) {
 		V[i]=V[i]-2*V_dot_n*n[i];
 	}
 }
@@ -112,12 +115,12 @@ double Particle::Touch(double* r1, int* r2) {
 	V_normed=this->Normed(V);
 	
 	double* r2_minus_r1=new double[3]; // include lib or write vector addition
-	for (int i=0; i<3; i++) {
+	for (int i=0; i<3; ++i) {
 		r2_minus_r1[i]=r2[i]-r1[i];
 	}
 	
 	double* r_perp=new double[3];
-	for (int i=0; i<3; i++) {
+	for (int i=0; i<3; ++i) {
 		r_perp[i]=r2[i]-r1[i] - this->Dot(r2_minus_r1, V_normed)*V_normed[i];
 	}
 	r_perp=this->Normed(r_perp);
@@ -133,13 +136,33 @@ double Particle::Touch(double* r1, int* r2) {
 	else return 0;
 }
 
-double* Particle::Collide(double m, int* r, double* v) {
+double Particle::Hit(double* r1, double* r2) {
+	// see green notebook, 10.12.14
+	double* r2_minus_r1=new double[3]; // include lib or write vector addition
+	for (int i=0; i<3; ++i) {
+		r2_minus_r1[i]=r2[i]-r1[i];
+	}
+	double l=sqrt(this->Dot(r2_minus_r1, r2_minus_r1));
+	return l;
+}
+// overloading...
+double Particle::Hit(double* r1, int* r2) {
+	// see green notebook, 10.12.14
+	double* r2_minus_r1=new double[3]; // include lib or write vector addition
+	for (int i=0; i<3; ++i) {
+		r2_minus_r1[i]=r2[i]-r1[i];
+	}
+	double l=sqrt(this->Dot(r2_minus_r1, r2_minus_r1));
+	return l;
+}
+
+double* Particle::Collide(double m, double* r, double* v) {
 	// see green notebook, 08.12.14
 	double* p=new double[3];
 	double* t=new double[3];
 	double* n=new double[3];
 	
-	for (int i=0; i<3; i++) {
+	for (int i=0; i<3; ++i) {
 		p[i]=R[i]-r[i];
 	}
 	p=this->Normed(p);
@@ -149,7 +172,7 @@ double* Particle::Collide(double m, int* r, double* v) {
 	t=this->Normed(t);
 	double V_prime=2*(M*this->Dot(V, p) + m*this->Dot(v, p))/(M+m) - this->Dot(V, p); // check this and optimize here
 	double v_prime=2*(M*this->Dot(V, p) + m*this->Dot(v, p))/(M+m) - this->Dot(v, p);
-	for (int i=0; i<3; i++) {
+	for (int i=0; i<3; ++i) {
 		VV[i]=V[i]; // do not forget temp cp
 		V[i]=this->Dot(VV, t)*t[i] + V_prime*p[i];
 		v[i]=this->Dot(v, t)*t[i] + v_prime*p[i];
@@ -161,13 +184,13 @@ double* Particle::Collide(double m, int* r, double* v) {
 double Particle::Bounce(double Touched) {
 	cout << "touching at: " << Touched << '\n';
 	
-	// update position
+	/*// update position
 	double* V_normed=new double[3]; // change this later and avoid extra def.
 	V_normed=this->Normed(VV);
-	for (int i=0; i<3; i++) {
+	for (int i=0; i<3; ++i) {
 		R[i]=RR[i] + Touched*V_normed[i]; // Is this really pointing into the correct direction?
 		RR[i]=R[i]; // Is it okay to update the old positions here?
-	}
+	}*/
 	
 	// get travel time
 	double tt=Touched/sqrt(this->Dot(VV, VV));
@@ -177,10 +200,7 @@ double Particle::Bounce(double Touched) {
 void Particle::Evolve(Verlet* Obj) {
 	// determine grid point nearest to particle position
 	double* r=new double[3];
-	for (int i=0; i<3; i++) {
-		r[i]=round(RR[i]);
-		cout << RR[i] << '\n';
-	}
+	for (int i=0; i<3; ++i) r[i]=round(RR[i]);
 	
 	int X=VV[0]/fabs(VV[0]);
 	int Y=VV[1]/fabs(VV[1]);
@@ -197,45 +217,68 @@ void Particle::Evolve(Verlet* Obj) {
 	double touched=0;
 	int* r_touched=new int[3]; // intness causes some trouble...
 		// check all grid points in the "direction" of the velocity...
-		for (int x=min(0, qx*X); x<max(0+1, qx*X+1); x++) {
-			for (int y=min(0, qy*Y); y<max(0+1, qy*Y+1); y++) {
-				for (int z=min(0, qz*Z); z<max(0+1, qz*Z+1); z++) {
+		// loop running must always start at 0 and only then go to +1 (fine) or -1 (former problem)
+		for (int x=0; abs(x)<abs(qx*X)+1 && touched==0; x=x+X) {
+			for (int y=0; abs(y)<abs(qy*Y)+1 && touched==0; y=y+Y) {
+				for (int z=0; abs(z)<abs(qz*Z)+1 && touched==0; z=z+(1-abs(Z))+Z) {
 				
-					if ((x==0) && (y==0) && (z==0)) continue; // exclude "self check"
-					
+					//if ((x==0) && (y==0) && (z==0)) continue; // exclude "self check" - Is this still fine?
 					
 					r_touched[0]=r[0]+x; r_touched[1]=r[1]+y; r_touched[2]=r[2]+z; // assuming distance between grid points to be unity
 					
 					touched=this->Touch(RR, r_touched);
-					//cout << "touched: " << touched << '\n';	
-					if (touched != 0) goto TOUCHDOWN;
 					
-					//cout << r[0]+x << "  " << r[1]+y << "  " << r[2]+z << "  " << '\n';
+					cout << "touched: " << touched << '\n';	
+					//cout << r[0] << "  " << r[1] << "  " << r[2] << "  " << '\n';
+					cout << r[0]+x << "  " << r[1]+y << "  " << r[2]+z << "  " << '\n';
 					//cout << round(Obj->r0[Obj->Index(r[0]+x, r[1]+y, r[2]+z, 0)]) << '\n'; // for this to work, spatial deplacements of grid points must be small (-> correct rounding)
 				}
 			}
 		}
-		TOUCHDOWN: if (touched != 0) {
-			// displace particle to next point and evolve grid according to travel time
-			Obj->T=this->Bounce(touched);
-			Obj->Evolve();
-			
-			// collision (velocity is being updated inside)
-			double* rdot_temp=new double[3]; // at some point I have to get rid of all those 3-arrays
-			for (int i=0; i<3; i++) {
-				rdot_temp[i]=Obj->rdot[Obj->Index(r_touched[0], r_touched[1], r_touched[2], i)];
-			}		
-			rdot_temp=this->Collide(m, r_touched, rdot_temp); // Is this the correct and up-to-date velocity?
-			
-			//change Verlet r1 according to new velocity: r1=dt*rdot + r0 - again: Is this really correct?
-			for (int i=0; i<3; i++) {
-				int index=Obj->Index(r_touched[0], r_touched[1], r_touched[2], i);
-				Obj->rdot[index]=rdot_temp[i];
-				Obj->r1[index]=Obj->dt*rdot_temp[i] + Obj->r0[index];
-			}
-		}
 		
-		// For tomorrow: Am I now in the position to call Evolve again? Is everything correct and updated?
+		if (touched != 0) {
+			// this has to be refined...
+			Obj->T=this->Bounce(touched);
+			
+			// call Verlet::Step in here
+			double* r_hit=new double[3];
+			double* rdot_temp=new double[3]; // at some point I have to get rid of all those 3-arrays
+			for (int t=0; t<2*Obj->T/Obj->dt; ++t) { // t=0???
+				// update position
+				for (int i=0; i<3; ++i) {
+					R[i]=RR[i] + Obj->dt*VV[i];// to use V_normed[i] would be wrong: touched=V*(mu-h)/V=mu-h ; // Is this really pointing into the correct direction?
+					RR[i]=R[i]; // Is it okay to update the old positions here? Do I need them at all?
+				}
+				Obj->Step();
+				
+				for (int i=0; i<3; ++i) {
+					int index=Obj->Index(r_touched[0], r_touched[1], r_touched[2], i);
+					r_hit[i]=Obj->r1[index]; // simplify this type of abundant construction
+					rdot_temp[i]=Obj->rdot[index];
+				}
+				
+				// somehow define a criterion for "no collision has happend, the particle is through" - must definitely be refined
+				if ((t > Obj->T/Obj->dt) && (this->Hit(RR, r_touched) > (D/2+d/2))) break;
+				
+				if (this->Hit(RR, r_hit) <= (D/2+d/2)) break;
+			}
+			
+			if (this->Hit(RR, r_hit) <= (D/2+d/2)) {
+				cout << "Hit!" << '\n';
+				// just execute the collision along the connecting vector, pretending the peripheries were touching nicely - perhaps this could be resolved by backwards calculation, but the error should not be large anyway
+				// velocity is being updated inside
+				rdot_temp=this->Collide(m, r_hit, rdot_temp); // Is this the correct and up-to-date velocity?
+				
+				//change Verlet r1 according to new velocity: r1=dt*rdot + r0 - again: Is this really correct?
+				for (int i=0; i<3; ++i) {
+					int index=Obj->Index(r_touched[0], r_touched[1], r_touched[2], i);
+					Obj->rdot[index]=rdot_temp[i];
+					Obj->r1[index]=Obj->dt*rdot_temp[i] + Obj->r0[index];
+				}
+			}
+			
+			if (this->Hit(RR, r_hit) > (D/2+d/2)) cout << "Did not hit!" << '\n';
+		}
 		
 		// How to proceed if grid is left??? reflection etc....
 		if (touched==0) cout << "Did not touch!" << '\n';

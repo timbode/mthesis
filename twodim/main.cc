@@ -1,12 +1,9 @@
 // main file
 #include <iostream>
-#include <vector>
-#include <math.h>
-#include <omp.h>
 #include <fstream>
-#include <algorithm>
 
 #include "verlet.hh"
+#include "particle.hh"
 
 using namespace std;
 
@@ -18,10 +15,10 @@ double dt=0.0001;
 
 Verlet grid(T, dt);
 
-grid.r1[grid.Index(1, 1, 0, 0)]+=0.01;
-grid.r0[grid.Index(1, 1, 0, 0)]+=0.01;
-grid.r1[grid.Index(1, 1, 0, 1)]+=0.01;
-grid.r0[grid.Index(1, 1, 0, 1)]+=0.01;
+grid.r1[grid.Index(1, 1, 0, 0)]+=0.0;
+grid.r0[grid.Index(1, 1, 0, 0)]+=0.0;
+grid.r1[grid.Index(1, 1, 0, 1)]+=0.0;
+grid.r0[grid.Index(1, 1, 0, 1)]+=0.0;
 
 // open file
 ofstream grid_data;
@@ -43,5 +40,25 @@ for (int tt=0; tt<time_steps; tt++) {
 }
 grid_data.close();
 
+double R_0 [3]={1.4,1.4,0.0};
+double V_0 [3]={-1.0001,-1,0};
+double n [3]={0,1,0};
+Particle particle(R_0, V_0); // declare particle directly after grid...
+//particle.Reflect(n);
+//cout << particle.V[0] << "   " << particle.V[1] << "   " << particle.V[2] << "   " << '\n';
+//particle.FoldBack();
+particle.Evolve(&grid);
+
+/*
+cout << '\n';
+double* r; r=new double[3];
+r[0]=0; r[1]=3.0001; r[2]=3.0;
+double* v; v=new double[3];
+v[0]=0; v[1]=0.0; v[2]=1.0;
+//v=particle.Collide(m, r, v);
+//cout << particle.V[0] << "   " << particle.V[1] << "   " << particle.V[2] << "   " << '\n';
+//cout << v[0] << "   " << v[1] << "   " << v[2] << "   " << '\n';
+cout << particle.Touch(R_0, r) << '\n';
+*/
 return 0;
 }
