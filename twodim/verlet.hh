@@ -85,7 +85,7 @@ void Verlet::Step() {
 						int index=this->Index(x, y, z, alpha);
 						r2[index]=2*r1[index] - r0[index] - (k*dt*dt/m)*(2*dim*r1[index] - NearestNeighbours(x, y, z, alpha));
 						
-						rdot[index]=(r2[index] - r0[index])/(2*dt);
+						rdot[index]=(r2[index] - r1[index])/dt;
 					}
 				}
 			}
@@ -95,7 +95,7 @@ void Verlet::Step() {
 }
 
 void Verlet::Evolve() {
-	for (int t=0; t<T/dt; t++) { // t=0???
+	for (int t=0; t<T/dt; t++) {
 		this->Step();
 	}
 }

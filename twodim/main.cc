@@ -10,8 +10,8 @@ using namespace std;
 int main() {
 
 int time_steps=1000;
-double T=0.01;
-double dt=0.0001;
+double T=2.0;
+double dt=0.01;
 
 Verlet grid(T, dt);
 
@@ -40,14 +40,16 @@ for (int tt=0; tt<time_steps; tt++) {
 }
 grid_data.close();
 
+Verlet grid2(T, dt);
+
 double R_0 [3]={1.4,1.4,0.0};
-double V_0 [3]={-1.0001,-1,0};
+double V_0 [3]={-1.00000001,-1,0};
 double n [3]={0,1,0};
-Particle particle(R_0, V_0); // declare particle directly after grid...
+Particle particle(T, dt, R_0, V_0);
 //particle.Reflect(n);
 //cout << particle.V[0] << "   " << particle.V[1] << "   " << particle.V[2] << "   " << '\n';
 //particle.FoldBack();
-particle.Evolve(&grid);
+particle.Evolve(&grid2);
 
 /*
 cout << '\n';
