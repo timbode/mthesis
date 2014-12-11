@@ -12,6 +12,7 @@ using namespace std;
 const unsigned int dim=2;
 // careful: N_X, N_Y must be >=3; N_Z can be either =1 or >=3 (there have to be inner points for the nearest-neighbour concept to work properly)
 const int N_X=3; const int N_Y=3; const int N_Z=1;
+const unsigned int N_[3]={N_X, N_Y, N_Z};
 const unsigned int Max=3*N_X*N_Y*N_Z; // length of arrays
 const double m=100.0; // mass of grid point
 const double k=1e3; // spring constant

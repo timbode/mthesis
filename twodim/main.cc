@@ -42,8 +42,8 @@ grid_data.close();
 
 Verlet grid2(T, dt);
 
-double R_0 [3]={1.4,1.4,0.0};
-double V_0 [3]={-1.00000001,-1,0};
+double R_0 [3]={1.5,1.5,0.0};
+double V_0 [3]={3.00001,3,0};
 double n [3]={0,1,0};
 Particle particle(T, dt, R_0, V_0);
 //particle.Reflect(n);

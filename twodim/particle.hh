@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <algorithm> // max, min
 
 using namespace std;
 
@@ -26,7 +27,6 @@ class Particle {
 		double* Normed(double*);
 		double* Cross(double*, double*, double*);
 		void Reflect(double*);
-		void FoldBack();
 		double Hit(double*, double*);
 		double* Collide(double, double*, double*);
 		void Evolve(Verlet*);
@@ -78,20 +78,6 @@ void Particle::Reflect(double* n) {
 	}
 }
 
-void Particle::FoldBack() {
-	cout << N_X << '\n'; // use dimensions to describe boundary in the box case
-	if (R[0] > N_X-1) cout << R[0]-(N_X-1) << '\n';
-	if (R[1] > N_Y-1) cout << R[1]-(N_Y-1) << '\n';
-	if (R[2] > N_Z-1) cout << R[2]-(N_Z-1) << '\n';
-	
-	// for 2D box
-	// specify corner points
-	double* r00=new double[3]; r00[0]=0; r00[1]=0; r00[2]=0;
-	double* r10=new double[3]; r10[0]=1; r10[1]=0; r10[2]=0;
-	double* r01=new double[3]; r01[0]=0; r01[1]=1; r01[2]=0;
-	double* r11=new double[3]; r11[0]=1; r11[1]=1; r11[2]=0;
-}
-
 // ------------------------------------------------------------------------------------------------
 double Particle::Hit(double* r1, double* r2) {
 	// see green notebook, 10.12.14
@@ -133,12 +119,46 @@ double* Particle::Collide(double m, double* r, double* v) {
 	return v;
 }
 
+// underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 void Particle::Evolve(Verlet* Obj) {
 	for (int t=0; t<T/dt; t++) {
-		// underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 		// determine grid point nearest to particle position
 		double* r=new double[3];
 		for (int i=0; i<3; ++i) r[i]=round(R[i]);
+		
+		// exlcude collisions with outer grid points and make particle stay inside box
+		double* n=new double[3];
+		if ((r[0]==N_X-1 || r[0]==0) || (r[1]==N_Y-1 || r[1]==0) || ((N_Z!=1) && (r[2]==N_Z-1 || r[2]==0))) {
+			n[0]=min(N_X-1 - R[0], R[0]);
+			n[1]=min(N_Y-1 - R[1], R[1]);
+			n[2]=min(N_Z-1 - R[2], R[2]); // this is always zero...
+			if ((N_Z==1) && (n[2]==0)) n[2]=max(n[0], n[1]) + 1; // just make it the biggest
+			double s=min(min(n[0], n[1]), n[2]);
+			for (int i=0; i<3; ++i) {
+				double temp=n[i];
+				n[i]=0;
+				if (temp == s) {
+					n[i]=(1 - (N_[i]-1 - r[i])*2/(N_[i]-1))*fabs(temp); // orientation outwards
+				}
+			}
+			
+			// reflect
+			if ((s <= 0) && (this->Dot(n, V) > 0)) this->Reflect(n); // second condition is to avoid that particle gets stuck in the corner
+			
+			// evolve particle
+			for (int i=0; i<3; ++i) {
+				R[i]=R[i] + dt*V[i];
+			
+				cout << V[i] << ", ";
+				cout << R[i] << ", ";
+			}
+			cout << '\n';
+		
+			// evolve grid
+			Obj->Step();
+			
+			continue;
+		}
 
 		// determine actual position and velocity
 		double* r_nearest=new double[3];
@@ -149,7 +169,7 @@ void Particle::Evolve(Verlet* Obj) {
 			rdot_nearest[i]=Obj->rdot[index];
 			//cout << Obj->r1[index] << ", ";
 		}
-		cout << '\n';
+		//cout << '\n';
 		
 		// check distance to actual position
 		if (this->Hit(R, r_nearest) <= (D/2 + d/2)) {
@@ -157,24 +177,26 @@ void Particle::Evolve(Verlet* Obj) {
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
 		
-			//update r1 according to new velocity: r1=dt*rdot + r0
+			// update r1 according to new velocity: r1=dt*rdot + r0
 			for (int i=0; i<3; ++i) {
 				int index=Obj->Index(r[0], r[1], r[2], i);
 				Obj->rdot[index]=rdot_nearest[i];
 				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index];
 				//cout  << Obj->r1[index] << ", ";
 			}
-			cout << '\n';
+			//cout << '\n';
 		}
 	
-		// evolve grid and particle
+		// evolve particle
 		cout << "Particle: ";
 		for (int i=0; i<3; ++i) {
 			R[i]=R[i] + dt*V[i];
 			
-			//cout << R[i] << ", ";
+			cout << R[i] << ", ";
 		}
 		cout << '\n';
+		
+		// evolve grid
 		Obj->Step();
 	}
 }
