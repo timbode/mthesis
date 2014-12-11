@@ -6,10 +6,12 @@
 #include <stdlib.h>
 #include <algorithm> // max, min
 
-using namespace std;
+#include "constants.hh"
 
-const double M=100.0; // particle mass
-const double D=0.1; // particle diameter
+using namespace std;
+using namespace Constants;
+
+// ------------------------------------------------------------------------------------------------
 
 class Particle {
 	public:
@@ -126,13 +128,11 @@ void Particle::Evolve(Verlet* Obj) {
 		double* r=new double[3];
 		for (int i=0; i<3; ++i) r[i]=round(R[i]);
 		
-		// exlcude collisions with outer grid points and make particle stay inside box
+		// exlcude collisions with outer grid points and make particle stay inside the box
 		double* n=new double[3];
-		if ((r[0]==N_X-1 || r[0]==0) || (r[1]==N_Y-1 || r[1]==0) || ((N_Z!=1) && (r[2]==N_Z-1 || r[2]==0))) {
-			n[0]=min(N_X-1 - R[0], R[0]);
-			n[1]=min(N_Y-1 - R[1], R[1]);
-			n[2]=min(N_Z-1 - R[2], R[2]); // this is always zero...
-			if ((N_Z==1) && (n[2]==0)) n[2]=max(n[0], n[1]) + 1; // just make it the biggest
+		if ((r[0]==N_[0]-1 || r[0]==0) || (r[1]==N_[1]-1 || r[1]==0) || ((N_[2]!=1) && (r[2]==N_[2]-1 || r[2]==0))) {
+			for (int i=0; i<3; ++i) n[i]=min(N_[i]-1 - R[i], R[i]); // n[2] is always zero...					
+			if ((N_[2]==1) && (n[2]==0)) n[2]=max(n[0], n[1]) + 1; // just make n[2] the biggest
 			double s=min(min(n[0], n[1]), n[2]);
 			for (int i=0; i<3; ++i) {
 				double temp=n[i];

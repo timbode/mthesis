@@ -9,7 +9,6 @@ using namespace std;
 
 int main() {
 
-int time_steps=1000;
 double T=2.0;
 double dt=0.01;
 
@@ -24,10 +23,10 @@ grid.r0[grid.Index(1, 1, 0, 1)]+=0.0;
 ofstream grid_data;
 grid_data.open("data/grid.dat");
 
-for (int tt=0; tt<time_steps; tt++) {
-	for (int x=0; x<N_X; x++) {
-		for (int y=0; y<N_Y; y++) {
-			for (int z=0; z<N_Z; z++) {
+for (int tt=0; tt<1000; tt++) {
+	for (int x=0; x<N_[0]; x++) {
+		for (int y=0; y<N_[1]; y++) {
+			for (int z=0; z<N_[2]; z++) {
 				for (int alpha=0; alpha<3; alpha++) {
 					grid_data << grid.r0[grid.Index(x, y, z, alpha)] << ",";					
 				}
