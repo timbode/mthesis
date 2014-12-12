@@ -31,7 +31,7 @@ class Particle {
 		void Reflect(double*);
 		double Hit(double*, double*);
 		double* Collide(double, double*, double*);
-		void Evolve(Verlet*);
+		void Evolve(Verlet*, double*);
 };
 
 Particle::Particle(double T_0, double dt_0, double* R_0, double* V_0) {
@@ -113,16 +113,22 @@ double* Particle::Collide(double m, double* r, double* v) {
 	double* v_temp=new double[3]; // do not forget temp cp here!
 	for (int i=0; i<3; ++i) v_temp[i]=v[i];
 	
+	//double E_0;
+	//double E;
 	for (int i=0; i<3; ++i) {
+		//E_0+=V[i]*V[i] + v[i]*v[i];
 		V[i]=this->Dot(V_temp, t)*t[i] + V_prime*p[i];
 		v[i]=this->Dot(v_temp, t)*t[i] + v_prime*p[i];
+		//E+=V[i]*V[i] + v[i]*v[i];
 	}
+	
+	//cout << E_0 << "   " << E << '\n';
 	
 	return v;
 }
 
 // underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
-void Particle::Evolve(Verlet* Obj) {
+void Particle::Evolve(Verlet* Obj, double* datarr) {
 	for (int t=0; t<T/dt; t++) {
 		// determine grid point nearest to particle position
 		double* r=new double[3];
@@ -148,11 +154,15 @@ void Particle::Evolve(Verlet* Obj) {
 			// evolve particle
 			for (int i=0; i<3; ++i) {
 				R[i]=R[i] + dt*V[i];
-			
-				cout << V[i] << ", ";
-				cout << R[i] << ", ";
+				
+				if (i<dim) {
+					*datarr=R[i];
+					++datarr;
+				}
+				//cout << V[i] << ", ";
+				//cout << R[i] << ", ";
 			}
-			cout << '\n';
+			//cout << '\n';
 		
 			// evolve grid
 			Obj->Step();
@@ -167,13 +177,13 @@ void Particle::Evolve(Verlet* Obj) {
 			int index=Obj->Index(r[0], r[1], r[2], i);
 			r_nearest[i]=Obj->r1[index];
 			rdot_nearest[i]=Obj->rdot[index];
-			//cout << Obj->r1[index] << ", ";
+			//cout << Obj->rdot[index] << ", ";
 		}
 		//cout << '\n';
 		
 		// check distance to actual position
 		if (this->Hit(R, r_nearest) <= (D/2 + d/2)) {
-			cout << "Hit!" << '\n';
+			//cout << "Hit!" << '\n';
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
 		
@@ -182,19 +192,23 @@ void Particle::Evolve(Verlet* Obj) {
 				int index=Obj->Index(r[0], r[1], r[2], i);
 				Obj->rdot[index]=rdot_nearest[i];
 				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index];
-				//cout  << Obj->r1[index] << ", ";
+				//cout  << Obj->rdot[index] << ", ";
 			}
 			//cout << '\n';
 		}
 	
 		// evolve particle
-		cout << "Particle: ";
+		//cout << "Particle: ";
 		for (int i=0; i<3; ++i) {
 			R[i]=R[i] + dt*V[i];
 			
-			cout << R[i] << ", ";
+			if (i<dim) {
+				*datarr=R[i];
+				++datarr;
+			}
+			//cout << V[i] << ", ";
 		}
-		cout << '\n';
+		//cout << '\n';
 		
 		// evolve grid
 		Obj->Step();
