@@ -1,4 +1,4 @@
-// main file
+	// main file
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -14,8 +14,38 @@ using namespace Constants;
 
 int main() {
 
-double T=1000.0;
-double dt=0.001;
+double T=1e0;
+double dt=1e-4;
+
+/*
+Verlet test(T, dt);
+
+test.r1[test.Index(1, 1, 0, 0)]+=0.05;
+test.r0[test.Index(1, 1, 0, 0)]+=0.05;
+test.r1[test.Index(1, 1, 0, 1)]+=0.05;
+test.r0[test.Index(1, 1, 0, 1)]+=0.05;
+
+
+// open file
+ofstream grid_data;
+grid_data.open("data/grid.dat");
+
+for (int tt=0; tt<T/dt; tt++) {
+	for (int x=0; x<N_[0]; x++) {
+		for (int y=0; y<N_[1]; y++) {
+			for (int z=0; z<N_[2]; z++) {
+				for (int alpha=0; alpha<3; alpha++) {
+					grid_data << test.r1[test.Index(x, y, z, alpha)] << ",";					
+				}
+				grid_data << '\t';
+			}
+		}
+	}
+	grid_data << '\n';
+	test.Evolve();
+}
+grid_data.close();
+*/
 
 unsigned int stats=1;
 
@@ -41,11 +71,9 @@ system_data << '\n';
 
 system_data.close();
 
-//double R_ [3]={1.5, 1, 0.0};
-//double V_ [3]={-3, 0.0000, 0};
-
-double R_ [3]={1.5, 1.5, 0.0};
-double V_ [3]={3.00001, 3, 0};
+double R_ [3]={N_[0]/2+0.5, N_[1]/2+0.5, 0.0};
+//double V_ [3]={-0.1, -0.1001, 0};
+double V_ [3]={-1, -1.001, 0};
 
 vector< vector<double> > R_0s(stats, vector<double>(3));
 vector< vector<double> > V_0s(stats, vector<double>(3));
@@ -67,9 +95,11 @@ for (int p=0; p<stats; ++p) {
 	}
 
 	Verlet grid(T, dt);
+//	grid.r1[grid.Index(1, 1, 0, 0)]+=5;
+//	grid.r0[grid.Index(1, 1, 0, 0)]+=5;
 
 	unsigned int steps=T/dt;
-	vector<double> data_array(dim*steps, 0.0);
+	vector<double> data_array((dim+2)*steps, 0.0);
 	Particle particle(T, dt, R_0, V_0);
 	particle.Evolve(&grid, &data_array[0]);
 
@@ -82,8 +112,8 @@ for (int p=0; p<stats; ++p) {
 
 	// write array to file
 	for (int t=0; t<steps; ++t) {
-		for (int u=0; u<dim; ++u) { 
-			particle_data << data_array[dim*t+u] << '\t';
+		for (int u=0; u<(dim+2); ++u) { 
+			particle_data << data_array[(dim+2)*t+u] << '\t';
 		}
 		particle_data << '\n';
 	}

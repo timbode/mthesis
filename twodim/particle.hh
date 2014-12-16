@@ -105,24 +105,21 @@ double* Particle::Collide(double m, double* r, double* v) {
 	n=this->Cross(R, r, n);
 	t=this->Cross(n, p, t);
 	t=this->Normed(t);
-	double V_prime=2*(M*this->Dot(V, p) + m*this->Dot(v, p))/(M+m) - this->Dot(V, p); // check this and optimize here
-	double v_prime=2*(M*this->Dot(V, p) + m*this->Dot(v, p))/(M+m) - this->Dot(v, p);
+	double V_Dot_p=this->Dot(V, p);
+	double v_Dot_p=this->Dot(v, p);
+	double c_factor=2*(M*V_Dot_p + m*v_Dot_p)/(M+m);
 	
-	double* V_temp=new double[3]; // do not forget temp cp here!
-	for (int i=0; i<3; ++i) V_temp[i]=V[i];
-	double* v_temp=new double[3]; // do not forget temp cp here!
-	for (int i=0; i<3; ++i) v_temp[i]=v[i];
-	
-	//double E_0;
-	//double E;
+	double* V_temp=new double[3];
+	double* v_temp=new double[3];
 	for (int i=0; i<3; ++i) {
-		//E_0+=V[i]*V[i] + v[i]*v[i];
-		V[i]=this->Dot(V_temp, t)*t[i] + V_prime*p[i];
-		v[i]=this->Dot(v_temp, t)*t[i] + v_prime*p[i];
-		//E+=V[i]*V[i] + v[i]*v[i];
+		V_temp[i]=V[i];
+		v_temp[i]=v[i];
 	}
 	
-	//cout << E_0 << "   " << E << '\n';
+	for (int i=0; i<3; ++i) {
+		V[i]=this->Dot(V_temp, t)*t[i] + (c_factor - V_Dot_p)*p[i];
+		v[i]=this->Dot(v_temp, t)*t[i] + (c_factor - v_Dot_p)*p[i];
+	}
 	
 	return v;
 }
@@ -130,11 +127,14 @@ double* Particle::Collide(double m, double* r, double* v) {
 // underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 void Particle::Evolve(Verlet* Obj, double* datarr) {
 	for (int t=0; t<T/dt; t++) {
+		double E; // particle energy
+		double E_grid; // grid energy
+	
 		// determine grid point nearest to particle position
 		double* r=new double[3];
 		for (int i=0; i<3; ++i) r[i]=round(R[i]);
 		
-		// exlcude collisions with outer grid points and make particle stay inside the box
+		// exlcude collisions with outer grid points and make particle stay in the box
 		double* n=new double[3];
 		if ((r[0]==N_[0]-1 || r[0]==0) || (r[1]==N_[1]-1 || r[1]==0) || ((N_[2]!=1) && (r[2]==N_[2]-1 || r[2]==0))) {
 			for (int i=0; i<3; ++i) n[i]=min(N_[i]-1 - R[i], R[i]); // n[2] is always zero...					
@@ -154,6 +154,7 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 			// evolve particle
 			for (int i=0; i<3; ++i) {
 				R[i]=R[i] + dt*V[i];
+				E+=0.5*M*V[i]*V[i]; // energy
 				
 				if (i<dim) {
 					*datarr=R[i];
@@ -162,10 +163,12 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 				//cout << V[i] << ", ";
 				//cout << R[i] << ", ";
 			}
+			*datarr=E; ++datarr;
 			//cout << '\n';
 		
 			// evolve grid
-			Obj->Step();
+			E_grid=Obj->Step();
+			*datarr=E_grid; ++datarr;
 			
 			continue;
 		}
@@ -201,6 +204,7 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 		//cout << "Particle: ";
 		for (int i=0; i<3; ++i) {
 			R[i]=R[i] + dt*V[i];
+			E+=0.5*M*V[i]*V[i]; // energy
 			
 			if (i<dim) {
 				*datarr=R[i];
@@ -208,11 +212,58 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 			}
 			//cout << V[i] << ", ";
 		}
+		*datarr=E; ++datarr;
 		//cout << '\n';
 		
 		// evolve grid
-		Obj->Step();
+		E_grid=Obj->Step();
+		*datarr=E_grid; ++datarr;
 	}
+	
+	// save current state of the system
+	ofstream state_data;
+	ostringstream FileNameStream;
+	FileNameStream << "data/particle_state" << ".dat";
+	string FileName=FileNameStream.str();
+	state_data.open(FileName.c_str());
+	
+	// write particle state to file
+	for (int i=0; i<3; ++i) {
+		state_data << R[i] << '\t';
+	}
+	state_data << '\n';
+	for (int i=0; i<3; ++i) {
+		state_data << V[i] << '\t';
+	}
+	state_data << '\n';
+	
+	state_data.close();
+	
+	// open file
+	ostringstream FileNameStream2;
+	FileNameStream2 << "data/grid_positions" << ".dat";
+	FileName=FileNameStream2.str();
+	state_data.open(FileName.c_str());
+	
+	// write grid positions to file
+	for (int i=0; i<Max; ++i) { 
+		state_data << Obj->r0[i] << '\t';
+		state_data << Obj->r1[i] << '\n';
+	}
+	/*
+		for (int alpha=0; alpha<3; ++alpha) { 
+			for (int x=1; x<(N_[0]-1); ++x) { // Postillon: +++ ++x supposed to be faster than x++ +++
+				for (int y=1; y<(N_[1]-1); ++y) {
+					for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
+						int index=Obj->Index(x, y, z, alpha);
+						state_data << Obj->r0[index] << '\t';
+						state_data << Obj->r1[index] << '\n';
+					}
+				}
+			}
+		}*/
+	state_data.close();
+	
 }
 // ------------------------------------------------------------------------------------------------
 #endif
