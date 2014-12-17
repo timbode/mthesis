@@ -1,5 +1,6 @@
-	// main file
+// main file
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -14,8 +15,14 @@ using namespace Constants;
 
 int main() {
 
-double T=1e0;
-double dt=1e-4;
+unsigned int steps=1000000;
+unsigned int repeat=1;
+double dt=1e-3;
+double T=steps*dt;
+
+double R_ [3]={N_[0]/2+0.5, N_[1]/2+0.5, 0.0};
+//double V_ [3]={-0.1, -0.1001, 0};
+double V_ [3]={-1, -1.5, 0};
 
 /*
 Verlet test(T, dt);
@@ -64,16 +71,13 @@ system_data << '\n';
 system_data << "# M: " << M << '\n';  
 system_data << "# D: " << D << '\n';
 system_data << '\n'; 
-system_data << "# T: " << T << '\n';
+system_data << "# steps: " << steps << '\n';
+system_data << "# repeat: " << repeat << '\n';
 system_data << "# dt: " << dt << '\n';
 system_data << "# stats: " << stats << '\n';
 system_data << '\n'; 
 
 system_data.close();
-
-double R_ [3]={N_[0]/2+0.5, N_[1]/2+0.5, 0.0};
-//double V_ [3]={-0.1, -0.1001, 0};
-double V_ [3]={-1, -1.001, 0};
 
 vector< vector<double> > R_0s(stats, vector<double>(3));
 vector< vector<double> > V_0s(stats, vector<double>(3));
@@ -86,39 +90,43 @@ for (int i=0; i<stats; ++i) {
 }
 
 for (int p=0; p<stats; ++p) {
-	
 	double R_0 [3];
 	double V_0 [3];
-	for (int q=0; q<3; ++q) {
+	for (int q=0; q<3; ++q) { // put this outside of the loop...
 		R_0[q]=R_0s[p][q];
 		V_0[q]=V_0s[p][q];
 	}
+	for (int rep=0; rep<repeat; ++rep) {
+		// create grid instance
+		Verlet grid(p, rep, T, dt);
+		//grid.r1[grid.Index(1, 1, 0, 0)]+=5;
+		//grid.r0[grid.Index(1, 1, 0, 0)]+=5;
 
-	Verlet grid(T, dt);
-//	grid.r1[grid.Index(1, 1, 0, 0)]+=5;
-//	grid.r0[grid.Index(1, 1, 0, 0)]+=5;
+		vector<double> data_array((dim+2)*steps, 0.0);
+	
+		// create particle instance
+		Particle particle(p, rep, T, dt, R_0, V_0);
+	
+		// give grid to particle and go
+		particle.Evolve(&grid, &data_array[0]);
 
-	unsigned int steps=T/dt;
-	vector<double> data_array((dim+2)*steps, 0.0);
-	Particle particle(T, dt, R_0, V_0);
-	particle.Evolve(&grid, &data_array[0]);
+		// open file
+		ofstream particle_data;
+		ostringstream FileNameStream;
+		FileNameStream << "data/chunks/particle_" << p << "_chunk_" << rep << ".dat";
+		string FileName=FileNameStream.str();
+		particle_data.open(FileName.c_str());
 
-	// open file
-	ofstream particle_data;
-	ostringstream FileNameStream;
-	FileNameStream << "data/particle_" << p << ".dat";
-	string FileName=FileNameStream.str();
-	particle_data.open(FileName.c_str());
-
-	// write array to file
-	for (int t=0; t<steps; ++t) {
-		for (int u=0; u<(dim+2); ++u) { 
-			particle_data << data_array[(dim+2)*t+u] << '\t';
+		// write array to file
+		for (int t=0; t<steps; ++t) {
+			for (int u=0; u<(dim+2); ++u) { 
+				particle_data << data_array[(dim+2)*t+u] << '\t';
+			}
+			particle_data << '\n';
 		}
-		particle_data << '\n';
-	}
 
-	particle_data.close();
+		particle_data.close();
+	}
 }
 
 return 0;

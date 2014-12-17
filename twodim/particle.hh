@@ -15,8 +15,11 @@ using namespace Constants;
 
 class Particle {
 	public:
-		 Particle(double, double, double*, double*); // constructor
+		 Particle(int, int, double, double, double*, double*); // constructor
 		~Particle(); // destructor
+		
+		int p; // particle number
+		int rep; // repetition number
 		
 		double T; // time interval
 		double dt; // recursion time
@@ -34,18 +37,51 @@ class Particle {
 		void Evolve(Verlet*, double*);
 };
 
-Particle::Particle(double T_0, double dt_0, double* R_0, double* V_0) {
+Particle::Particle(int P, int Rep, double T_0, double dt_0, double* R_0, double* V_0) {
+	p=P; rep=Rep;
 	T=T_0; dt=dt_0;
 	R=new double[3];
 	V=new double[3];
-	for (int i=0; i<3; ++i) {
-		R[i]=R_0[i];
-		V[i]=V_0[i];
+	
+	if (rep==0) {
+		for (int i=0; i<3; ++i) {
+			R[i]=R_0[i];
+			V[i]=V_0[i];
+		}
+	}
+	else {
+		ifstream state_data;
+		ostringstream FileNameStream;
+		FileNameStream << "data/init/particle_" << p << "_init_chunk_" << rep << ".dat";
+		string FileName=FileNameStream.str();
+		state_data.open(FileName.c_str());
+		int i=0;
+		double RR; double VV;
+		while (state_data >> RR >> VV) {
+			R[i]=RR; V[i]=VV;
+			++i;
+		}
+	
+		state_data.close();
 	}
 }
 
 Particle::~Particle() {
-
+	// save current state of the system
+	ofstream state_data;
+	ostringstream FileNameStream;
+	FileNameStream << "data/init/particle_" << p << "_init_chunk_" << rep + 1 << ".dat";
+	string FileName=FileNameStream.str();
+	state_data.open(FileName.c_str());
+	
+	// write particle state to file
+	for (int i=0; i<3; ++i) {
+		state_data << R[i] << '\t';
+		state_data << V[i] << '\t';
+		state_data << '\n';
+	}
+	
+	state_data.close();
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -57,7 +93,7 @@ double Particle::Dot(double* vec1, double* vec2) {
 
 double* Particle::Normed(double* vec) {
 	double norm_vec=sqrt(this->Dot(vec, vec));
-	vec[0]=vec[0]/norm_vec; vec[1]=vec[1]/norm_vec; vec[2]=vec[2]/norm_vec;
+	for (int i=0; i<3; ++i) vec[i]=vec[i]/norm_vec;
 	return vec;
 }
 
@@ -105,20 +141,17 @@ double* Particle::Collide(double m, double* r, double* v) {
 	n=this->Cross(R, r, n);
 	t=this->Cross(n, p, t);
 	t=this->Normed(t);
+	
 	double V_Dot_p=this->Dot(V, p);
 	double v_Dot_p=this->Dot(v, p);
 	double c_factor=2*(M*V_Dot_p + m*v_Dot_p)/(M+m);
 	
-	double* V_temp=new double[3];
-	double* v_temp=new double[3];
-	for (int i=0; i<3; ++i) {
-		V_temp[i]=V[i];
-		v_temp[i]=v[i];
-	}
+	double V_Dot_t=this->Dot(V, t);
+	double v_Dot_t=this->Dot(v, t);
 	
 	for (int i=0; i<3; ++i) {
-		V[i]=this->Dot(V_temp, t)*t[i] + (c_factor - V_Dot_p)*p[i];
-		v[i]=this->Dot(v_temp, t)*t[i] + (c_factor - v_Dot_p)*p[i];
+		V[i]=V_Dot_t*t[i] + (c_factor - V_Dot_p)*p[i];
+		v[i]=v_Dot_t*t[i] + (c_factor - v_Dot_p)*p[i];
 	}
 	
 	return v;
@@ -126,7 +159,7 @@ double* Particle::Collide(double m, double* r, double* v) {
 
 // underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 void Particle::Evolve(Verlet* Obj, double* datarr) {
-	for (int t=0; t<T/dt; t++) {
+	for (int t=0; t<T/dt; t++) { // replace T/dt with steps...
 		double E; // particle energy
 		double E_grid; // grid energy
 	
@@ -219,51 +252,6 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 		E_grid=Obj->Step();
 		*datarr=E_grid; ++datarr;
 	}
-	
-	// save current state of the system
-	ofstream state_data;
-	ostringstream FileNameStream;
-	FileNameStream << "data/particle_state" << ".dat";
-	string FileName=FileNameStream.str();
-	state_data.open(FileName.c_str());
-	
-	// write particle state to file
-	for (int i=0; i<3; ++i) {
-		state_data << R[i] << '\t';
-	}
-	state_data << '\n';
-	for (int i=0; i<3; ++i) {
-		state_data << V[i] << '\t';
-	}
-	state_data << '\n';
-	
-	state_data.close();
-	
-	// open file
-	ostringstream FileNameStream2;
-	FileNameStream2 << "data/grid_positions" << ".dat";
-	FileName=FileNameStream2.str();
-	state_data.open(FileName.c_str());
-	
-	// write grid positions to file
-	for (int i=0; i<Max; ++i) { 
-		state_data << Obj->r0[i] << '\t';
-		state_data << Obj->r1[i] << '\n';
-	}
-	/*
-		for (int alpha=0; alpha<3; ++alpha) { 
-			for (int x=1; x<(N_[0]-1); ++x) { // Postillon: +++ ++x supposed to be faster than x++ +++
-				for (int y=1; y<(N_[1]-1); ++y) {
-					for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
-						int index=Obj->Index(x, y, z, alpha);
-						state_data << Obj->r0[index] << '\t';
-						state_data << Obj->r1[index] << '\n';
-					}
-				}
-			}
-		}*/
-	state_data.close();
-	
 }
 // ------------------------------------------------------------------------------------------------
 #endif
