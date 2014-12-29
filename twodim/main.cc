@@ -15,14 +15,14 @@ using namespace Constants;
 
 int main() {
 
-unsigned int steps=1000000;
-unsigned int repeat=1;
-double dt=1e-3;
+unsigned int steps=300000;
+unsigned int repeat=2;
+double dt=1e-5; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
 double R_ [3]={N_[0]/2+0.5, N_[1]/2+0.5, 0.0};
 //double V_ [3]={-0.1, -0.1001, 0};
-double V_ [3]={-1, -1.5, 0};
+double V_ [3]={-1, -1.0001, 0};
 
 /*
 Verlet test(T, dt);
@@ -42,7 +42,7 @@ for (int tt=0; tt<T/dt; tt++) {
 		for (int y=0; y<N_[1]; y++) {
 			for (int z=0; z<N_[2]; z++) {
 				for (int alpha=0; alpha<3; alpha++) {
-					grid_data << test.r1[test.Index(x, y, z, alpha)] << ",";					
+					grid_data << test.r1[test.Index(x, y, z, alpha)] << ",";
 				}
 				grid_data << '\t';
 			}
@@ -63,19 +63,19 @@ system_data << "# dim: " << dim << '\n';
 system_data << "# N_X: " << N_[0] << '\n';
 system_data << "# N_Y: " << N_[1] << '\n';
 system_data << "# N_Z: " << N_[2] << '\n';
-system_data << '\n'; 
+system_data << '\n';
 system_data << "# k: " << k << '\n';
 system_data << "# m: " << m << '\n';
-system_data << "# d: " << d << '\n'; 
-system_data << '\n'; 
-system_data << "# M: " << M << '\n';  
+system_data << "# d: " << d << '\n';
+system_data << '\n';
+system_data << "# M: " << M << '\n';
 system_data << "# D: " << D << '\n';
-system_data << '\n'; 
+system_data << '\n';
 system_data << "# steps: " << steps << '\n';
 system_data << "# repeat: " << repeat << '\n';
 system_data << "# dt: " << dt << '\n';
 system_data << "# stats: " << stats << '\n';
-system_data << '\n'; 
+system_data << '\n';
 
 system_data.close();
 
@@ -97,16 +97,17 @@ for (int p=0; p<stats; ++p) {
 		V_0[q]=V_0s[p][q];
 	}
 	for (int rep=0; rep<repeat; ++rep) {
+		cout << "Starting with repetition " << rep << '\n';
 		// create grid instance
 		Verlet grid(p, rep, T, dt);
 		//grid.r1[grid.Index(1, 1, 0, 0)]+=5;
 		//grid.r0[grid.Index(1, 1, 0, 0)]+=5;
 
 		vector<double> data_array((dim+2)*steps, 0.0);
-	
+
 		// create particle instance
 		Particle particle(p, rep, T, dt, R_0, V_0);
-	
+
 		// give grid to particle and go
 		particle.Evolve(&grid, &data_array[0]);
 
@@ -119,7 +120,7 @@ for (int p=0; p<stats; ++p) {
 
 		// write array to file
 		for (int t=0; t<steps; ++t) {
-			for (int u=0; u<(dim+2); ++u) { 
+			for (int u=0; u<(dim+2); ++u) {
 				particle_data << data_array[(dim+2)*t+u] << '\t';
 			}
 			particle_data << '\n';

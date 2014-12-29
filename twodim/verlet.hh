@@ -18,24 +18,24 @@ class Verlet {
 	public:
 		Verlet(int, int, double, double); // construction from file
 		~Verlet(); // destructor
-		
+
 		int p; // grid number==particle number
 		int rep; // repetition number
-		
+
 		double T; // time interval
 		double dt; // recursion time
-		
+
 		double* r0; double* r1; double* r2; // positions: three arrays required because Verlet method depends on the last two sets of positions
-		
+
 		double* rdot; // velocities
-		
+
 		// methods
 		int Index(int, int, int, int);
 		double NearestNeighbours(int, int, int, int);
 		double PotentialEnergy(int, int, int, int, int);
 		double Step();
 		void Evolve();
-		
+
 }; // do not forget the funny semicolon down here...
 
 // init
@@ -46,7 +46,7 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 	r1  =new double[Max];
 	r2  =new double[Max];
 	rdot=new double[Max];
-	
+
 	if (rep==0) {
 		// default initialization: positions must be set
 		for (int x=0; x<N_[0]; ++x) {
@@ -76,10 +76,10 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 			//cout << "construction: " << i << "  " << r0[i] << "  " << r1[i] << '\n';
 			++i;
 		}
-	
+
 		state_data.close();
 	}
-	
+
 }
 
 Verlet::~Verlet() {
@@ -91,7 +91,7 @@ Verlet::~Verlet() {
 	state_data.open(FileName.c_str());
 	state_data.precision(15); // precision in writing must be high - otherwise there appear discontinuities in the energy when repeating (division by small dt?)	
 	// write grid positions to file
-	for (int i=0; i<Max; ++i) { 
+	for (int i=0; i<Max; ++i) {
 		state_data << r0[i] << '\t';
 		state_data << r1[i] << '\t';
 		state_data << r2[i] << '\n';
@@ -141,14 +141,14 @@ double Verlet::Step() {
 		*/
 		double E; // energy
 		#pragma omp parallel for collapse(4) reduction(+:E)
-		for (int alpha=0; alpha<3; ++alpha) { 
+		for (int alpha=0; alpha<3; ++alpha) {
 			for (int x=1; x<(N_[0]-1); ++x) { // Postillon: +++ ++x supposed to be faster than x++ +++
 				for (int y=1; y<(N_[1]-1); ++y) {
 					for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
 						int index=this->Index(x, y, z, alpha);
 						r2[index]=2*r1[index] - r0[index] - ((k/m)*dt*dt)*(2*dim*r1[index] - NearestNeighbours(x, y, z, alpha)); // ((k/m)*dt*dt) must be << 1
 						rdot[index]=(r2[index] - r1[index])/dt; // (r2[index] - r0[index])/(2*dt)
-						
+
 						// energy
 						E+=0.5*m*rdot[index]*rdot[index] + PotentialEnergy(index, x, y, z, alpha);
 					}
@@ -156,7 +156,7 @@ double Verlet::Step() {
 			}
 		}
 		r0=r1; r1=r2; r2=r0;
-		
+
 		return E;
 }
 

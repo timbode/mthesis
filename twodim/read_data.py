@@ -23,12 +23,22 @@ with open('data/system.dat') as f:
 dim=int(constants[0][2])
 N_X=int(constants[1][2])
 N_Y=int(constants[2][2])
+k=float(constants[4][2])
+m=float(constants[5][2])
+d=float(constants[6][2])
+M=float(constants[7][2])
+D=float(constants[8][2])
+steps=int(constants[9][2])
 repeat=int(constants[10][2])
+dt=float(constants[11][2])
 stats=int(constants[12][2])
+T=steps*repeat*dt
+
+bins_x=50; bins_y=50
 
 # binning
-xbins=arange(0, N_X)
-ybins=arange(0, N_Y)
+xbins=linspace(0, N_X, bins_x)
+ybins=linspace(0, N_Y, bins_y)
 
 for p in xrange(0, stats):
 	if p==0:
@@ -40,20 +50,20 @@ for p in xrange(0, stats):
 				strang=line.strip().split()
 				X.append(float(strang[0]))
 				Y.append(float(strang[1]))
-				if p==0:
-					E.append(float(strang[2]))
-					E_grid.append(float(strang[3]))
-					E_tot.append(float(strang[2]) + float(strang[3]))
-			
+				#if p==0:
+					#E.append(float(strang[2]))
+					#E_grid.append(float(strang[3]))
+					#E_tot.append(float(strang[2]) + float(strang[3]))
+
 			f.close()
-			
-		counts=plt.hist2d(X, Y, bins=[xbins,ybins])[0]	
+
+		counts=plt.hist2d(X, Y, bins=[xbins,ybins])[0]
 		with open('data/hist/hist_counts_'+str(p)+'_chunk_'+str(rep)+'.dat', 'w') as g:
 			for bracket in counts:
 				for element in bracket:
 					g.write(str(element)+'\t')
 				g.write('\n')
-
+'''
 # energy
 fig=plt.figure(figsize=(20,10))
 plt.title('Energies')
@@ -64,3 +74,4 @@ plt.plot(t_axis, E_tot)
 plt.xlabel('t')
 plt.ylabel('E')
 fig.savefig('data/plots/energies.png')
+'''
