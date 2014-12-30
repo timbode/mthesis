@@ -1,4 +1,5 @@
 # make historgram
+import os
 from numpy import *
 from math import *
 import matplotlib
@@ -42,9 +43,12 @@ bins_x=50; bins_y=50
 
 # 2D histogram
 all_counts=zeros((bins_x-1, bins_y-1))
-for p in xrange(0, stats):
-	for rep in xrange(0, repeat):
-		with open('data/hist/hist_counts_'+str(p)+'_chunk_'+str(rep)+'.dat') as f:
+for root, _, files in os.walk('data/hist'):
+	for file in files:
+		X=[]; Y=[];
+		string=file.strip().split('_')
+		p=string[2]; rep=string[4][:-4]
+		with open('data/hist/hist_counts_'+p+'_chunk_'+rep+'.dat') as f:
 			counts=[]
 			for line in f:
 				strang=line.strip().split()

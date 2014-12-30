@@ -1,4 +1,5 @@
 # data analysis for 2D
+import os
 from numpy import *
 from math import *
 import matplotlib
@@ -20,7 +21,7 @@ with open('data/system.dat') as f:
 			constants.append(strang)
 	f.close()
 
-dim=int(constants[0][2])
+dim=int(constants[0][2]) # could also iterate a dictionary
 N_X=int(constants[1][2])
 N_Y=int(constants[2][2])
 k=float(constants[4][2])
@@ -40,20 +41,21 @@ bins_x=50; bins_y=50
 xbins=linspace(0, N_X, bins_x)
 ybins=linspace(0, N_Y, bins_y)
 
-for p in xrange(0, stats):
-	if p==0:
-		E=[]; E_grid=[]; E_tot=[];
-	for rep in xrange(0, repeat):
+E=[]; E_grid=[]; E_tot=[];
+for root, _, files in os.walk('data/chunks'):
+	for file in files:
 		X=[]; Y=[];
-		with open('data/chunks/particle_'+str(p)+'_chunk_'+str(rep)+'.dat') as f:
+		string=file.strip().split('_')
+		p=string[1]; rep=string[3][:-4]
+		with open('data/chunks/particle_'+p+'_chunk_'+rep+'.dat') as f:
 			for line in f:
 				strang=line.strip().split()
 				X.append(float(strang[0]))
 				Y.append(float(strang[1]))
-				#if p==0:
-					#E.append(float(strang[2]))
-					#E_grid.append(float(strang[3]))
-					#E_tot.append(float(strang[2]) + float(strang[3]))
+				if p==0:
+					E.append(float(strang[2]))
+					E_grid.append(float(strang[3]))
+					E_tot.append(float(strang[2]) + float(strang[3]))
 
 			f.close()
 
