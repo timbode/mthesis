@@ -21,25 +21,30 @@ with open('data/system.dat') as f:
 			constants.append(strang)
 	f.close()
 
-dim=int(constants[0][2]) # could also iterate a dictionary
+dim=int(constants[0][2]) # could as well iterate a dictionary
 N_X=int(constants[1][2])
 N_Y=int(constants[2][2])
 k=float(constants[4][2])
 m=float(constants[5][2])
 d=float(constants[6][2])
-M=float(constants[7][2])
-D=float(constants[8][2])
-steps=int(constants[9][2])
-repeat=int(constants[10][2])
-dt=float(constants[11][2])
-stats=int(constants[12][2])
+L=float(constants[7][2])
+M=float(constants[7+1][2])
+D=float(constants[8+1][2])
+f=float(constants[9+1][2])
+
+steps=int(constants[9+1+1][2])
+repeat=int(constants[10+1+1][2])
+dt=float(constants[11+1+1][2])
 T=steps*repeat*dt
+
+stats=int(constants[12+1+1][2])
+system_type=str(constants[13+1+1][2])
 
 bins_x=50; bins_y=50
 
 # binning
-xbins=linspace(0, N_X, bins_x)
-ybins=linspace(0, N_Y, bins_y)
+xbins=linspace(0, L*N_X, bins_x)
+ybins=linspace(0, L*N_Y, bins_y)
 
 E=[]; E_grid=[]; E_tot=[];
 for root, _, files in os.walk('data/chunks'):
@@ -47,7 +52,7 @@ for root, _, files in os.walk('data/chunks'):
 		X=[]; Y=[];
 		string=file.strip().split('_')
 		p=string[1]; rep=string[3][:-4]
-		with open('data/chunks/particle_'+p+'_chunk_'+rep+'.dat') as f:
+		with open('data/chunks/'+system_type+'_'+p+'_chunk_'+rep+'.dat') as f:
 			for line in f:
 				strang=line.strip().split()
 				X.append(float(strang[0]))
@@ -60,7 +65,7 @@ for root, _, files in os.walk('data/chunks'):
 			f.close()
 
 		counts=plt.hist2d(X, Y, bins=[xbins,ybins])[0]
-		with open('data/hist/hist_counts_'+str(p)+'_chunk_'+str(rep)+'.dat', 'w') as g:
+		with open('data/hist/hist_counts_'+p+'_chunk_'+rep+'.dat', 'w') as g:
 			for bracket in counts:
 				for element in bracket:
 					g.write(str(element)+'\t')

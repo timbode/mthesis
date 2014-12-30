@@ -10,6 +10,7 @@
 
 #include "verlet.hh"
 #include "particle.hh"
+#include "droplet.hh"
 
 using namespace std;
 using namespace Constants;
@@ -20,11 +21,12 @@ unsigned int repeat=atof(argv[1]);
 unsigned int p=atof(argv[2]);
 unsigned int rep=atof(argv[3]);
 
-unsigned int steps=1000000;
+unsigned int steps=100000;
 double dt=1e-5; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
-double R_0 [3]={N_[0]/2+0.5, N_[1]/2+0.5, 0.0};
+double R_0 [3]={0.5, 0.50001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
+//double R_0 [3]={N_[0]/2+0.5, N_[1]/2+0.50001, 0.0};
 //double V_0 [3]={-0.1, -0.1001, 0};
 double V_0 [3]={-1, -1.0001, 0};
 
@@ -62,60 +64,62 @@ unsigned int stats=1;
 
 ofstream system_data;
 system_data.open("data/system.dat");
-
-system_data << "# dim: " << dim << '\n';
-system_data << "# N_X: " << N_[0] << '\n';
-system_data << "# N_Y: " << N_[1] << '\n';
-system_data << "# N_Z: " << N_[2] << '\n';
-system_data << '\n';
-system_data << "# k: " << k << '\n';
-system_data << "# m: " << m << '\n';
-system_data << "# d: " << d << '\n';
-system_data << '\n';
-system_data << "# M: " << M << '\n';
-system_data << "# D: " << D << '\n';
-system_data << '\n';
-system_data << "# steps: " << steps << '\n';
-system_data << "# repeat: " << repeat << '\n';
-system_data << "# dt: " << dt << '\n';
-system_data << "# stats: " << stats << '\n';
-system_data << '\n';
-
+{
+	system_data << "# dim: " << dim << '\n';
+	system_data << "# N_X: " << N_[0] << '\n';
+	system_data << "# N_Y: " << N_[1] << '\n';
+	system_data << "# N_Z: " << N_[2] << '\n';
+	system_data << '\n';
+	system_data << "# k: " << k << '\n';
+	system_data << "# m: " << m << '\n';
+	system_data << "# d: " << d << '\n';
+	system_data << "# L: " << L << '\n';
+	system_data << '\n';
+	system_data << "# M: " << M << '\n';
+	system_data << "# D: " << D << '\n';
+	system_data << "# f: " << f << '\n';
+	system_data << '\n';
+	system_data << "# steps: " << steps << '\n';
+	system_data << "# repeat: " << repeat << '\n';
+	system_data << "# dt: " << dt << '\n';
+	system_data << "# stats: " << stats << '\n';
+	system_data << '\n';
+	system_data << "# system_type: " << system_type << '\n';
+}
 system_data.close();
 
 //vector< vector<double> > R_0s(stats, vector<double>(3));
 //vector< vector<double> > V_0s(stats, vector<double>(3));
 
-		cout << "Starting with repetition " << rep << '\n';
-		// create grid instance
-		Verlet grid(p, rep, T, dt);
-		//grid.r1[grid.Index(1, 1, 0, 0)]+=5;
-		//grid.r0[grid.Index(1, 1, 0, 0)]+=5;
+cout << "Starting with repetition " << rep << '\n';
+// create grid instance
+Verlet grid(p, rep, T, dt); // replace T by steps
 
-		vector<double> data_array((dim+2)*steps, 0.0);
+vector<double> data_array((dim+2)*steps, 0.0);
 
-// create particle instance
-Particle particle(p, rep, T, dt, R_0, V_0);
+// create particle or droplet instance
+Particle particle(p, rep, steps, dt, R_0, V_0);
+//Droplet droplet(p, rep, steps, dt, R_0, V_0);
 
-// give grid to particle and go
+// give grid to particle or droplet and go
 particle.Evolve(&grid, &data_array[0]);
 
 // open file
-ofstream particle_data;
+ofstream data;
 ostringstream FileNameStream;
-FileNameStream << "data/chunks/particle_" << p << "_chunk_" << rep << ".dat";
+FileNameStream << "data/chunks/" << system_type << "_" << p << "_chunk_" << rep << ".dat";
 string FileName=FileNameStream.str();
-particle_data.open(FileName.c_str());
+data.open(FileName.c_str());
 
 // write array to file
 for (int t=0; t<steps; ++t) {
 	for (int u=0; u<(dim+2); ++u) {
-		particle_data << data_array[(dim+2)*t+u] << '\t';
+		data << data_array[(dim+2)*t+u] << '\t';
 	}
-	particle_data << '\n';
+	data << '\n';
 }
 
-particle_data.close();
+data.close();
 
 return 0;
 }

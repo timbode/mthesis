@@ -52,9 +52,9 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 		for (int x=0; x<N_[0]; ++x) {
 			for (int y=0; y<N_[1]; ++y) {
 				for (int z=min(0, N_[2]); z<max(0, N_[2]); ++z) {
-					  r0[this->Index(x, y, z, 0)]=x;   r0[this->Index(x, y, z, 1)]=y;   r0[this->Index(x, y, z, 2)]=z;
-					  r1[this->Index(x, y, z, 0)]=x;   r1[this->Index(x, y, z, 1)]=y;   r1[this->Index(x, y, z, 2)]=z;
-					  r2[this->Index(x, y, z, 0)]=x;   r2[this->Index(x, y, z, 1)]=y;   r2[this->Index(x, y, z, 2)]=z;
+					  r0[this->Index(x, y, z, 0)]=L*x;   r0[this->Index(x, y, z, 1)]=L*y;   r0[this->Index(x, y, z, 2)]=L*z;
+					  r1[this->Index(x, y, z, 0)]=L*x;   r1[this->Index(x, y, z, 1)]=L*y;   r1[this->Index(x, y, z, 2)]=L*z;
+					  r2[this->Index(x, y, z, 0)]=L*x;   r2[this->Index(x, y, z, 1)]=L*y;   r2[this->Index(x, y, z, 2)]=L*z;
 					rdot[this->Index(x, y, z, 0)]=0; rdot[this->Index(x, y, z, 1)]=0; rdot[this->Index(x, y, z, 2)]=0;
 				}
 			}
@@ -83,13 +83,13 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 }
 
 Verlet::~Verlet() {
-	// save current state of the system
+	// save current state of the system --- does this state appear twice (before and after)?
 	ofstream state_data;
 	ostringstream FileNameStream;
 	FileNameStream << "data/init/grid_" << p << "_init_chunk_" << rep + 1 << ".dat";
 	string FileName=FileNameStream.str();
 	state_data.open(FileName.c_str());
-	state_data.precision(15); // precision in writing must be high - otherwise there appear discontinuities in the energy when repeating (division by small dt?)	
+	state_data.precision(15); // precision in writing must be high - otherwise there appear discontinuities in the energy when repeating (division by small dt?)
 	// write grid positions to file
 	for (int i=0; i<Max; ++i) {
 		state_data << r0[i] << '\t';
