@@ -25,10 +25,10 @@ unsigned int steps=100000;
 double dt=1e-5; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
-double R_0 [3]={0.5, 0.50001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
-//double R_0 [3]={N_[0]/2+0.5, N_[1]/2+0.50001, 0.0};
+//double R_0 [3]={0.5, 0.50001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
+double R_0 [3]={L*(N_[0]/2+0.5), L*(N_[1]/2+0.50001), L*0.0};
 //double V_0 [3]={-0.1, -0.1001, 0};
-double V_0 [3]={-1, -1.0001, 0};
+double V_0 [3]={-0.1, -0.20001, 0};
 
 /*
 Verlet test(T, dt);
@@ -37,7 +37,6 @@ test.r1[test.Index(1, 1, 0, 0)]+=0.05;
 test.r0[test.Index(1, 1, 0, 0)]+=0.05;
 test.r1[test.Index(1, 1, 0, 1)]+=0.05;
 test.r0[test.Index(1, 1, 0, 1)]+=0.05;
-
 
 // open file
 ofstream grid_data;
@@ -97,12 +96,18 @@ Verlet grid(p, rep, T, dt); // replace T by steps
 
 vector<double> data_array((dim+2)*steps, 0.0);
 
-// create particle or droplet instance
-Particle particle(p, rep, steps, dt, R_0, V_0);
-//Droplet droplet(p, rep, steps, dt, R_0, V_0);
-
-// give grid to particle or droplet and go
-particle.Evolve(&grid, &data_array[0]);
+if (system_type[0]=='p') {
+	// create particle instance
+	Particle particle(p, rep, steps, dt, R_0, V_0);
+	// give grid to particle and go
+	particle.Evolve(&grid, &data_array[0]);
+}
+else if (system_type[0]=='d') {
+	// create droplet instance
+	Droplet droplet(p, rep, steps, dt, R_0, V_0);
+	// give grid to droplet and go
+	droplet.Evolve(&grid, &data_array[0]);
+}
 
 // open file
 ofstream data;

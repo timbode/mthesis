@@ -42,9 +42,16 @@ system_type=str(constants[13+1+1][2])
 
 bins_x=50; bins_y=50
 
-# binning
-xbins=linspace(0, L*N_X, bins_x)
-ybins=linspace(0, L*N_Y, bins_y)
+if  system_type=='particle':
+	# binning
+	bin_size_x=float(N_X-1)/bins_x
+	bin_size_y=float(N_Y-1)/bins_y
+	xbins=arange(0, (N_X-1)+bin_size_x, bin_size_x)
+	ybins=arange(0, (N_Y-1)+bin_size_y, bin_size_y)
+elif system_type=='droplet':
+	# binning
+	xbins=linspace(0, 1, bins_x+1)
+	ybins=linspace(0, 1, bins_y+1)
 
 E=[]; E_grid=[]; E_tot=[];
 for root, _, files in os.walk('data/chunks'):

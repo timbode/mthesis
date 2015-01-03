@@ -47,8 +47,19 @@ system_type=str(constants[13+1+1][2])
 
 bins_x=50; bins_y=50
 
+if  system_type=='particle':
+	# binning
+	bin_size_x=float(N_X-1)/bins_x
+	bin_size_y=float(N_Y-1)/bins_y
+	xbins=arange(0, (N_X-1)+bin_size_x, bin_size_x)
+	ybins=arange(0, (N_Y-1)+bin_size_y, bin_size_y)
+elif system_type=='droplet':
+	# binning
+	xbins=linspace(0, 1, bins_x+1)
+	ybins=linspace(0, 1, bins_y+1)
+
 # 2D histogram
-all_counts=zeros((bins_x-1, bins_y-1))
+all_counts=zeros((bins_x, bins_y))
 for root, _, files in os.walk('data/hist'):
 	for file in files:
 		X=[]; Y=[];
@@ -63,11 +74,9 @@ for root, _, files in os.walk('data/hist'):
 			counts=transpose(array(counts))
 			all_counts+=counts
 
-# binning
-xbins=linspace(0, L*N_X, bins_x)
-ybins=linspace(0, L*N_Y, bins_y)
-xbins, ybins=meshgrid(xbins, ybins)
 
+# meshgrid
+xbins, ybins=meshgrid(xbins, ybins)
 fig=plt.figure()
 size=0.7
 if N_X > N_Y:
@@ -83,12 +92,13 @@ fig.colorbar(mesh)
 font_size=8
 x_text=0.1
 fig.text(x_text, 0.04, 'Verlet: '+'dt='+str(dt)+', '+'T='+str(T), fontsize=font_size)
-fig.text(x_text, 0.07, 'Grid: '+'m='+str(m)+', '+'d='+str(d)+', '+'k='+str(k), fontsize=font_size)
 if  system_type=='particle':
+	fig.text(x_text, 0.07, 'Grid: '+'m='+str(m)+', '+'d='+str(d)+', '+'k='+str(k), fontsize=font_size)
 	fig.text(x_text, 0.1, str.capitalize(system_type)+': '+'M='+str(M)+', '+'D='+str(D), fontsize=font_size)
 	plt.xlim(0, N_X-1)
 	plt.ylim(0, N_Y-1)
 elif system_type=='droplet':
+	fig.text(x_text, 0.07, 'Grid: '+'m='+str(m)+', '+'k='+str(k), fontsize=font_size)
 	fig.text(x_text, 0.1, str.capitalize(system_type)+': '+'M='+str(M)+', '+'f='+str(f), fontsize=font_size)
 	plt.xlim(0, 1)
 	plt.ylim(0, 1)

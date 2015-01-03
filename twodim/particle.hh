@@ -170,7 +170,7 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 		// exlcude collisions with outer grid points and make particle stay in the box
 		double* n=new double[3];
 		if ((r[0]==N_[0]-1 || r[0]==0) || (r[1]==N_[1]-1 || r[1]==0) || ((N_[2]!=1) && (r[2]==N_[2]-1 || r[2]==0))) {
-			for (int i=0; i<3; ++i) n[i]=min(N_[i]-1 - R[i], R[i]); // n[2] is always zero...
+			for (int i=0; i<3; ++i) n[i]=min(L*(N_[i]-1) - R[i], R[i]); // n[2] is always zero...
 			if ((N_[2]==1) && (n[2]==0)) n[2]=max(n[0], n[1]) + 1; // just make n[2] the biggest
 			double s=min(min(n[0], n[1]), n[2]);
 			for (int i=0; i<3; ++i) {
@@ -212,6 +212,7 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 		double* r_nearest=new double[3];
 		double* rdot_nearest=new double[3];
 		for (int i=0; i<3; ++i) {
+			//cout << "trouble: " << r[i] << ", ";
 			int index=Obj->Index(r[0], r[1], r[2], i);
 			r_nearest[i]=Obj->r1[index];
 			rdot_nearest[i]=Obj->rdot[index];
