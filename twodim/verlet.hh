@@ -66,7 +66,7 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 		// the boundary components will be randomly initialized if not set below...
 		ifstream state_data;
 		ostringstream FileNameStream;
-		FileNameStream << "data/init/grid_" << p << "_init_chunk_" << rep << ".dat";
+		FileNameStream << _DATA_ << "/init/grid_" << p << "_init_chunk_" << rep << ".dat";
 		string FileName=FileNameStream.str();
 		state_data.open(FileName.c_str());
 		int i=0;
@@ -86,7 +86,7 @@ Verlet::~Verlet() {
 	// save current state of the system --- does this state appear twice (before and after)?
 	ofstream state_data;
 	ostringstream FileNameStream;
-	FileNameStream << "data/init/grid_" << p << "_init_chunk_" << rep + 1 << ".dat";
+	FileNameStream << _DATA_ << "/init/grid_" << p << "_init_chunk_" << rep + 1 << ".dat";
 	string FileName=FileNameStream.str();
 	state_data.open(FileName.c_str());
 	state_data.precision(15); // precision in writing must be high - otherwise there appear discontinuities in the energy when repeating (division by small dt?)

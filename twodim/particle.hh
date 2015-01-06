@@ -52,7 +52,7 @@ Particle::Particle(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_
 	else {
 		ifstream state_data;
 		ostringstream FileNameStream;
-		FileNameStream << "data/init/" << system_type << "_" << p << "_init_chunk_" << rep << ".dat";
+		FileNameStream << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep << ".dat";
 		string FileName=FileNameStream.str();
 		state_data.open(FileName.c_str());
 		int i=0;
@@ -70,7 +70,7 @@ Particle::~Particle() {
 	// save current state of the system
 	ofstream state_data;
 	ostringstream FileNameStream;
-	FileNameStream << "data/init/" << system_type << "_" << p << "_init_chunk_" << rep + 1 << ".dat";
+	FileNameStream << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep + 1 << ".dat";
 	string FileName=FileNameStream.str();
 	state_data.open(FileName.c_str());
 

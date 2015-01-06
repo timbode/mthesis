@@ -21,14 +21,14 @@ unsigned int repeat=atof(argv[1]);
 unsigned int p=atof(argv[2]);
 unsigned int rep=atof(argv[3]);
 
-unsigned int steps=100000;
-double dt=1e-5; // should be 1e-5 or 1e-6
+unsigned int steps=10000;
+double dt=1e-4; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
 //double R_0 [3]={0.5, 0.50001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
 double R_0 [3]={L*(N_[0]/2+0.5), L*(N_[1]/2+0.50001), L*0.0};
 //double V_0 [3]={-0.1, -0.1001, 0};
-double V_0 [3]={-0.1, -0.20001, 0};
+double V_0 [3]={-1, -2.0001, 0};
 
 /*
 Verlet test(T, dt);
@@ -62,8 +62,13 @@ grid_data.close();
 unsigned int stats=1;
 
 ofstream system_data;
-system_data.open("data/system.dat");
+ostringstream FileNameStream;
+FileNameStream << _DATA_ << "/system.dat";
+string FileName=FileNameStream.str();
+system_data.open(FileName.c_str());
 {
+	system_data << "# folder: " << _DATA_ << '\n';
+	system_data << '\n';
 	system_data << "# dim: " << dim << '\n';
 	system_data << "# N_X: " << N_[0] << '\n';
 	system_data << "# N_Y: " << N_[1] << '\n';
@@ -90,7 +95,7 @@ system_data.close();
 //vector< vector<double> > R_0s(stats, vector<double>(3));
 //vector< vector<double> > V_0s(stats, vector<double>(3));
 
-cout << "Starting with repetition " << rep << '\n';
+cout << " ... " << rep;
 // create grid instance
 Verlet grid(p, rep, T, dt); // replace T by steps
 
@@ -111,9 +116,9 @@ else if (system_type[0]=='d') {
 
 // open file
 ofstream data;
-ostringstream FileNameStream;
-FileNameStream << "data/chunks/" << system_type << "_" << p << "_chunk_" << rep << ".dat";
-string FileName=FileNameStream.str();
+ostringstream FileNameStream2;
+FileNameStream2 << _DATA_ << "/chunks/" << system_type << "_" << p << "_chunk_" << rep << ".dat";
+FileName=FileNameStream2.str();
 data.open(FileName.c_str());
 
 // write array to file
