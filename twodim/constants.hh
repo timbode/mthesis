@@ -4,12 +4,12 @@
 namespace Constants {
 
 // ------------------------------------------------------------------------------------------------
-// path to data folder: [19:-2] gives folder in exec.sh
+// path to data folder - [19:-2] gives folder in exec.sh
 const char _DATA_[]="data";
 // constants from verlet.hh
 const unsigned int dim=2;
 // careful: N_[0], N_[1] must be >=3; N_[2] can be either =1 or >=3 (there have to be inner points for the nearest-neighbour concept to work)
-const int N_ [3]={101, 101, 1};
+const int N_ [3]={21, 21, 1};
 const unsigned int Max=3*N_[0]*N_[1]*N_[2]; // length of arrays
 const double k=1e1; // spring constant
 const double m=1.0; // grid-point mass
@@ -26,7 +26,7 @@ const double L=a_X/(N_[0] - 1); // for approx of membrane (droplet case)
 
 // ------------------------------------------------------------------------------------------------
 // constants from particle.hh and droplet.hh
-const double M=9800.0; // particle mass
+const double M=N_[0]*N_[0]-4*N_[0]+4; // particle mass
 const double D=0.4; // particle diameter
 const double f=1e0; // "bouncing" frequency of particle, so 1/10 for every 10 seconds
 // ------------------------------------------------------------------------------------------------

@@ -7,10 +7,19 @@
 #include <omp.h>
 #include <algorithm> // max, min
 
+// random numbers
+#include <ctime>
+#include </home/students/lappet/Documents/Masterarbeit/boost_1_56_0/boost/random.hpp>
+#include </home/students/lappet/Documents/Masterarbeit/boost_1_56_0/boost/generator_iterator.hpp>
+
+// namespace
 #include "constants.hh"
 
 using namespace std;
 using namespace Constants;
+
+//typedef for random number generation; see http://www.boost.org/doc/libs/1_37_0/libs/random/random_demo.cpp
+typedef boost::mt19937 base_generator_type;
 
 // ------------------------------------------------------------------------------------------------
 
@@ -42,12 +51,23 @@ class Verlet {
 Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 	p=P; rep=Rep;
 	T=T_0; dt=dt_0;
-	r0  =new double[Max];
-	r1  =new double[Max];
-	r2  =new double[Max];
+	r0  =new double[Max]; r1  =new double[Max]; r2  =new double[Max];
 	rdot=new double[Max];
 
 	if (rep==0) {
+
+		//----------------------------------------------------------------------------------------------
+		// create a random generator for each system
+		base_generator_type generator(42u);
+		// set seed to system time (probably change this to something else)
+		generator.seed(static_cast<unsigned int>(time(0)));
+
+		// Define a uniform random number distribution which produces "double"
+		// values between 0 and 1 (0 inclusive, 1 exclusive).
+		boost::uniform_real<> uni_dist(-1,1);
+		boost::variate_generator<base_generator_type&, boost::uniform_real<> > uni(generator, uni_dist);
+		//-----------------------------------------------------------------------------------------------
+
 		// default initialization: positions must be set
 		for (int x=0; x<N_[0]; ++x) {
 			for (int y=0; y<N_[1]; ++y) {
@@ -55,11 +75,25 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 					  r0[this->Index(x, y, z, 0)]=L*x;   r0[this->Index(x, y, z, 1)]=L*y;   r0[this->Index(x, y, z, 2)]=L*z;
 					  r1[this->Index(x, y, z, 0)]=L*x;   r1[this->Index(x, y, z, 1)]=L*y;   r1[this->Index(x, y, z, 2)]=L*z;
 					  r2[this->Index(x, y, z, 0)]=L*x;   r2[this->Index(x, y, z, 1)]=L*y;   r2[this->Index(x, y, z, 2)]=L*z;
-					rdot[this->Index(x, y, z, 0)]=0; rdot[this->Index(x, y, z, 1)]=0; rdot[this->Index(x, y, z, 2)]=0;
+					rdot[this->Index(x, y, z, 0)]=0;   rdot[this->Index(x, y, z, 1)]=0;   rdot[this->Index(x, y, z, 2)]=0;
+				}
+			}
+		}
+		// make excitation
+		double scale_x=1e-1;
+		double scale_y=1e-1;
+		for (int x=1; x<(N_[0]-1); ++x) {
+			for (int y=1; y<(N_[1]-1); ++y) {
+				for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
+					//cout << x << y << z << '\n';
+					r0[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r0[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r0[this->Index(x, y, z, 2)]+=0;
+					r1[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r1[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r1[this->Index(x, y, z, 2)]+=0;
+					r2[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r2[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r2[this->Index(x, y, z, 2)]+=0;
 				}
 			}
 		}
 	}
+
 	else {
 		// tricky bug here: while it is true that r2 is overwritten during the first time step,
 		// that holds only for the inner components -

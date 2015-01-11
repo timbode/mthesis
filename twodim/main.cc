@@ -21,14 +21,14 @@ unsigned int repeat=atof(argv[1]);
 unsigned int p=atof(argv[2]);
 unsigned int rep=atof(argv[3]);
 
-unsigned int steps=10000;
-double dt=1e-4; // should be 1e-5 or 1e-6
+unsigned int steps=1e4;
+double dt=1e-2; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
-//double R_0 [3]={0.5, 0.50001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
-double R_0 [3]={L*(N_[0]/2+0.5), L*(N_[1]/2+0.50001), L*0.0};
-//double V_0 [3]={-0.1, -0.1001, 0};
-double V_0 [3]={-1, -2.0001, 0};
+double R_0 [3]={0.5, 0.50001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
+//double R_0 [3]={L*(N_[0]/2+0.5), L*(N_[1]/2+0.50001), L*0.0};
+//double V_0 [3]={-1, -2.0001, 0};
+double V_0 [3]={-0.0000001, -0.0000010001, 0};
 
 /*
 Verlet test(T, dt);
@@ -118,8 +118,8 @@ else if (system_type[0]=='d') {
 ofstream data;
 ostringstream FileNameStream2;
 FileNameStream2 << _DATA_ << "/chunks/" << system_type << "_" << p << "_chunk_" << rep << ".dat";
-FileName=FileNameStream2.str();
-data.open(FileName.c_str());
+string FileName2=FileNameStream2.str();
+data.open(FileName2.c_str());
 
 // write array to file
 for (int t=0; t<steps; ++t) {

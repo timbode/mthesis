@@ -53,10 +53,10 @@ Droplet::Droplet(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_0,
 	}
 	else {
 		ifstream state_data;
-		ostringstream FileNameStream;
-		FileNameStream << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep << ".dat";
-		string FileName=FileNameStream.str();
-		state_data.open(FileName.c_str());
+		ostringstream FileNameStream_out;
+		FileNameStream_out << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep << ".dat";
+		string FileName_out=FileNameStream_out.str();
+		state_data.open(FileName_out.c_str());
 		int i=0;
 		double RR; double VV;
 		while (state_data >> RR >> VV) {
@@ -71,10 +71,10 @@ Droplet::Droplet(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_0,
 Droplet::~Droplet() {
 	// save current state of the system
 	ofstream state_data;
-	ostringstream FileNameStream;
-	FileNameStream << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep + 1 << ".dat";
-	string FileName=FileNameStream.str();
-	state_data.open(FileName.c_str());
+	ostringstream FileNameStream_in;
+	FileNameStream_in << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep + 1 << ".dat";
+	string FileName_in=FileNameStream_in.str();
+	state_data.open(FileName_in.c_str());
 
 	// write droplet state to file
 	for (int i=0; i<3; ++i) {
@@ -133,7 +133,6 @@ double* Droplet::Collide(double m, double* r, double* v) {
 		p[i]=R[i]-r[i];
 	}
 	p=this->Normed(p);
-
 	n=this->Cross(R, r, n);
 	t=this->Cross(n, p, t);
 	t=this->Normed(t);
@@ -247,7 +246,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				*datarr=R[i];
 				++datarr;
 			}
-			//cout << V[i] << ", ";
+			//cout << R[i] << ", ";
 		}
 		*datarr=E; ++datarr;
 		//cout << '\n';

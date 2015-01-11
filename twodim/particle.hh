@@ -246,7 +246,7 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 				*datarr=R[i];
 				++datarr;
 			}
-			//cout << V[i] << ", ";
+			//cout << R[i] << ", ";
 		}
 		*datarr=E; ++datarr;
 		//cout << '\n';

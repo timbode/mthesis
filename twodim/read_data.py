@@ -36,14 +36,15 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 		string=file.strip().split('_')
 		p=string[1]; rep=string[3][:-4]
 		with open(SystemData["_DATA_"]+'/chunks/'+SystemData["system_type"]+'_'+p+'_chunk_'+rep+'.dat') as f:
-			for line in f:
+			for k, line in enumerate(f):
 				strang=line.strip().split()
 				X.append(float(strang[0]))
 				Y.append(float(strang[1]))
-				if p==0:
-					E.append(float(strang[2]))
-					E_grid.append(float(strang[3]))
-					E_tot.append(float(strang[2]) + float(strang[3]))
+				if float(p) == 0:
+					if k % 1000 == 0:
+						E.append(float(strang[2]))
+						E_grid.append(float(strang[3]))
+						E_tot.append(float(strang[2]) + float(strang[3]))
 
 			f.close()
 
@@ -53,15 +54,14 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 				for element in bracket:
 					g.write(str(element)+'\t')
 				g.write('\n')
-'''
+
 # energy
 fig=plt.figure(figsize=(20,10))
 plt.title('Energies')
 t_axis=arange(0, len(E))
-#plt.plot(t_axis, E)
+plt.plot(t_axis, E)
 plt.plot(t_axis, E_grid)
 plt.plot(t_axis, E_tot)
 plt.xlabel('t')
 plt.ylabel('E')
 fig.savefig('data/plots/energies.png')
-'''
