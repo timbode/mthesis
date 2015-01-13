@@ -23,7 +23,7 @@ icc -fopenmp -O3 -o main main.cc
 
 #loop particles and repetitions
 stats=1
-repeat=5000
+repeat=20
 start=0
 time {
 for ((p=0; p<$stats; ++p)); do

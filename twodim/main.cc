@@ -21,14 +21,14 @@ unsigned int repeat=atof(argv[1]);
 unsigned int p=atof(argv[2]);
 unsigned int rep=atof(argv[3]);
 
-unsigned int steps=1e4;
-double dt=1e-2; // should be 1e-5 or 1e-6
+unsigned int steps=1e6;
+double dt=1e-5; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
-double R_0 [3]={0.5, 0.50001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
+double R_0 [3]={0.51, 0.510001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
 //double R_0 [3]={L*(N_[0]/2+0.5), L*(N_[1]/2+0.50001), L*0.0};
-//double V_0 [3]={-1, -2.0001, 0};
-double V_0 [3]={-0.0000001, -0.0000010001, 0};
+double V_0 [3]={-1, -1.0001, 0};
+//double V_0 [3]={-0.01, -0.010001, 0};
 
 /*
 Verlet test(T, dt);

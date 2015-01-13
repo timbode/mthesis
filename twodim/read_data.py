@@ -11,6 +11,31 @@ matplotlib.rcParams["agg.path.chunksize"]=20000
 import system_data
 
 #---------------------------------------------------------------------------------
+
+def Read(file):
+	X=[]; Y=[];
+	string=file.strip().split('_')
+	p=string[1]; rep=string[3][:-4]
+	with open(SystemData["_DATA_"]+'/chunks/'+SystemData["system_type"]+'_'+p+'_chunk_'+rep+'.dat') as f:
+		for k, line in enumerate(f):
+			strang=line.strip().split()
+			X.append(float(strang[0]))
+			Y.append(float(strang[1]))
+			if float(p) == 0:
+				if k % 1000 == 0:
+					E.append(float(strang[2]))
+					E_grid.append(float(strang[3]))
+					E_tot.append(float(strang[2]) + float(strang[3]))
+
+		f.close()
+
+	counts=plt.hist2d(X, Y, bins=[xbins,ybins])[0]
+	with open(SystemData["_DATA_"]+'/hist/hist_counts_'+p+'_chunk_'+rep+'.dat', 'w') as g:
+		for bracket in counts:
+			for element in bracket:
+				g.write(str(element)+'\t')
+			g.write('\n')
+
 #---------------------------------------------------------------------------------
 
 system_data.read()

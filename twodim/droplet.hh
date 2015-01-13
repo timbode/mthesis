@@ -34,6 +34,7 @@ class Droplet {
 		double* Cross(double*, double*, double*);
 		void Reflect(double*);
 		bool Hit(unsigned int);
+		bool Hit(double*, double*);
 		double* Collide(double, double*, double*);
 		void Evolve(Verlet*, double*);
 };
@@ -75,7 +76,7 @@ Droplet::~Droplet() {
 	FileNameStream_in << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep + 1 << ".dat";
 	string FileName_in=FileNameStream_in.str();
 	state_data.open(FileName_in.c_str());
-
+	state_data.precision(15);
 	// write droplet state to file
 	for (int i=0; i<3; ++i) {
 		state_data << R[i] << '\t';
@@ -123,6 +124,18 @@ bool Droplet::Hit(unsigned int tt) {
 	return (tt % T_col) == 0;
 }
 
+bool Droplet::Hit(double* r1, double* r2) {
+	// see green notebook, 10.12.14
+	double* r2_minus_r1=new double[3]; // include lib or write vector addition
+	for (int i=0; i<3; ++i) {
+		r2_minus_r1[i]=r2[i]-r1[i];
+	}
+	double l=sqrt(this->Dot(r2_minus_r1, r2_minus_r1));
+	//cout << "l: " << l << '\n';
+	return l <= (D/2 + d/2);
+}
+
+// this function is confirmed to be working properly; set 3x3 grid for inspection
 double* Droplet::Collide(double m, double* r, double* v) {
 	// see green notebook, 08.12.14
 	double* p=new double[3];
@@ -133,6 +146,7 @@ double* Droplet::Collide(double m, double* r, double* v) {
 		p[i]=R[i]-r[i];
 	}
 	p=this->Normed(p);
+	
 	n=this->Cross(R, r, n);
 	t=this->Cross(n, p, t);
 	t=this->Normed(t);
@@ -162,9 +176,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		double* r=new double[3];
 		for (int i=0; i<3; ++i) {
 			r[i]=round(R[i]/L); // note the new factor of 1/L...
-			//if (t%1000==0) cout << R[i] << ", " << r[i] << ", ";
 		}
-		//if (t%1000==0) cout << '\n';
 
 		// exlcude collisions with outer grid points and make droplet stay in the box
 		double* n=new double[3];
@@ -215,25 +227,26 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 			int index=Obj->Index(r[0], r[1], r[2], i); // bus error here...
 			r_nearest[i]=Obj->r1[index];
 			rdot_nearest[i]=Obj->rdot[index];
-			//cout << Obj->rdot[index] << ", ";
+			//cout << V[i] << "  " << "rdot_nearest: " << rdot_nearest[i] << " -------- ";
 		}
 		//cout << '\n';
 
+		// there is energy loss during the collision --- only if L!=1.0???
 		// if droplet "comes back in"
-		if (this->Hit(t)) {
+		if  (this->Hit(t)) { //(this->Hit(R, r_nearest)) {
 			//cout << "Hit!" << '\n';
+			
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
 
 			// update r1 according to new velocity: r1=dt*rdot + r0
-			//cout << t << ": ";
+			
 			for (int i=0; i<3; ++i) {
 				int index=Obj->Index(r[0], r[1], r[2], i);
-				Obj->rdot[index]=rdot_nearest[i];
-				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index];
-				//cout << r[i] << ", ";
+				Obj->rdot[index]=rdot_nearest[i]; // this is strictly speaking not necessary: rdot is not involved in the computation of the next step
+				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index]; //PROBLEM HERE, I think...
+				//cout << V[i] << "  " << "rdot_nearest: " << rdot_nearest[i] << " -------- ";
 			}
-			//cout << '\n';
 		}
 
 		// evolve droplet

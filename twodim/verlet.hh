@@ -79,9 +79,10 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 				}
 			}
 		}
+		
 		// make excitation
-		double scale_x=1e-1;
-		double scale_y=1e-1;
+		double scale_x=1e-5; // must not be too large - why, exactly?
+		double scale_y=1e-5;
 		for (int x=1; x<(N_[0]-1); ++x) {
 			for (int y=1; y<(N_[1]-1); ++y) {
 				for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
@@ -92,6 +93,7 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 				}
 			}
 		}
+		
 	}
 
 	else {
@@ -167,12 +169,6 @@ double Verlet::PotentialEnergy(int Ind, int X, int Y, int Z, int Alpha) {
 }
 
 double Verlet::Step() {
-		/*
-		for (int i=0; i<Max; ++i) {
-			cout << "im loop: " << i << "   " << r0[i]<< "   " << r1[i] << "   " << r2[i] <<  '\n';
-		}
-		cout << "++++++++++++++++++++++++++++++++" << '\n';
-		*/
 		double E; // energy
 		#pragma omp parallel for collapse(4) reduction(+:E)
 		for (int alpha=0; alpha<3; ++alpha) {

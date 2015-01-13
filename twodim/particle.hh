@@ -124,9 +124,11 @@ bool Particle::Hit(double* r1, double* r2) {
 		r2_minus_r1[i]=r2[i]-r1[i];
 	}
 	double l=sqrt(this->Dot(r2_minus_r1, r2_minus_r1));
+	//cout << "l: " << l << '\n';
 	return l <= (D/2 + d/2);
 }
 
+// this function is confirmed to be working properly; set 3x3 grid for inspection
 double* Particle::Collide(double m, double* r, double* v) {
 	// see green notebook, 08.12.14
 	double* p=new double[3];
@@ -165,8 +167,11 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 
 		// determine grid point nearest to particle position
 		double* r=new double[3];
-		for (int i=0; i<3; ++i) r[i]=round(R[i]/L); // note the new factor of 1/L...
-
+		for (int i=0; i<3; ++i) {
+			r[i]=round(R[i]/L); // note the new factor of 1/L...
+			//cout << "L: " << L << '\n';
+			//cout << "r[i]: " << r[i] << '\n';
+			}
 		// exlcude collisions with outer grid points and make particle stay in the box
 		double* n=new double[3];
 		if ((r[0]==N_[0]-1 || r[0]==0) || (r[1]==N_[1]-1 || r[1]==0) || ((N_[2]!=1) && (r[2]==N_[2]-1 || r[2]==0))) {
@@ -214,9 +219,11 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 		for (int i=0; i<3; ++i) {
 			//cout << "trouble: " << r[i] << ", ";
 			int index=Obj->Index(r[0], r[1], r[2], i);
+			//cout << "index: " << index << "   " <<  Obj->r1[index] << '\n';
 			r_nearest[i]=Obj->r1[index];
 			rdot_nearest[i]=Obj->rdot[index];
-			//cout << Obj->rdot[index] << ", ";
+			//cout << "r_nearest: " << r_nearest[i] << ", ";
+			//cout << R[i] << ", ";
 		}
 		//cout << '\n';
 
