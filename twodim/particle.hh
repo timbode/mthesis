@@ -168,14 +168,13 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 		// determine grid point nearest to particle position
 		double* r=new double[3];
 		for (int i=0; i<3; ++i) {
-			r[i]=round(R[i]/L); // note the new factor of 1/L...
-			//cout << "L: " << L << '\n';
-			//cout << "r[i]: " << r[i] << '\n';
+			r[i]=round(R[i]);
 			}
+
 		// exlcude collisions with outer grid points and make particle stay in the box
 		double* n=new double[3];
 		if ((r[0]==N_[0]-1 || r[0]==0) || (r[1]==N_[1]-1 || r[1]==0) || ((N_[2]!=1) && (r[2]==N_[2]-1 || r[2]==0))) {
-			for (int i=0; i<3; ++i) n[i]=min(L*(N_[i]-1) - R[i], R[i]); // n[2] is always zero...
+			for (int i=0; i<3; ++i) n[i]=min((N_[i]-1) - R[i], R[i]); // n[2] is always zero...
 			if ((N_[2]==1) && (n[2]==0)) n[2]=max(n[0], n[1]) + 1; // just make n[2] the biggest
 			double s=min(min(n[0], n[1]), n[2]);
 			for (int i=0; i<3; ++i) {

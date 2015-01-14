@@ -51,7 +51,7 @@ class Verlet {
 Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 	p=P; rep=Rep;
 	T=T_0; dt=dt_0;
-	r0  =new double[Max]; r1  =new double[Max]; r2  =new double[Max];
+	r0=new double[Max]; r1=new double[Max]; r2=new double[Max];
 	rdot=new double[Max];
 
 	if (rep==0) {
@@ -72,28 +72,28 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 		for (int x=0; x<N_[0]; ++x) {
 			for (int y=0; y<N_[1]; ++y) {
 				for (int z=min(0, N_[2]); z<max(0, N_[2]); ++z) {
-					  r0[this->Index(x, y, z, 0)]=L*x;   r0[this->Index(x, y, z, 1)]=L*y;   r0[this->Index(x, y, z, 2)]=L*z;
-					  r1[this->Index(x, y, z, 0)]=L*x;   r1[this->Index(x, y, z, 1)]=L*y;   r1[this->Index(x, y, z, 2)]=L*z;
-					  r2[this->Index(x, y, z, 0)]=L*x;   r2[this->Index(x, y, z, 1)]=L*y;   r2[this->Index(x, y, z, 2)]=L*z;
+					  r0[this->Index(x, y, z, 0)]=x;   r0[this->Index(x, y, z, 1)]=y;   r0[this->Index(x, y, z, 2)]=z;
+					  r1[this->Index(x, y, z, 0)]=x;   r1[this->Index(x, y, z, 1)]=y;   r1[this->Index(x, y, z, 2)]=z;
+					  r2[this->Index(x, y, z, 0)]=x;   r2[this->Index(x, y, z, 1)]=y;   r2[this->Index(x, y, z, 2)]=z;
 					rdot[this->Index(x, y, z, 0)]=0;   rdot[this->Index(x, y, z, 1)]=0;   rdot[this->Index(x, y, z, 2)]=0;
 				}
 			}
 		}
-		
+
 		// make excitation
-		double scale_x=1e-5; // must not be too large - why, exactly?
-		double scale_y=1e-5;
+		double scale_x=1e-3; // must not be too large - why, exactly?
+		double scale_y=1e-3;
 		for (int x=1; x<(N_[0]-1); ++x) {
 			for (int y=1; y<(N_[1]-1); ++y) {
 				for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
 					//cout << x << y << z << '\n';
-					r0[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r0[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r0[this->Index(x, y, z, 2)]+=0;
-					r1[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r1[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r1[this->Index(x, y, z, 2)]+=0;
-					r2[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r2[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r2[this->Index(x, y, z, 2)]+=0;
+					r0[this->Index(x, y, z, 0)]+=scale_x*uni();   r0[this->Index(x, y, z, 1)]+=scale_y*uni();   r0[this->Index(x, y, z, 2)]+=0;
+					r1[this->Index(x, y, z, 0)]+=scale_x*uni();   r1[this->Index(x, y, z, 1)]+=scale_y*uni();   r1[this->Index(x, y, z, 2)]+=0;
+					r2[this->Index(x, y, z, 0)]+=scale_x*uni();   r2[this->Index(x, y, z, 1)]+=scale_y*uni();   r2[this->Index(x, y, z, 2)]+=0;
 				}
 			}
 		}
-		
+
 	}
 
 	else {
@@ -172,7 +172,7 @@ double Verlet::Step() {
 		double E; // energy
 		#pragma omp parallel for collapse(4) reduction(+:E)
 		for (int alpha=0; alpha<3; ++alpha) {
-			for (int x=1; x<(N_[0]-1); ++x) { // Postillon: +++ ++x supposed to be faster than x++ +++
+			for (int x=1; x<(N_[0]-1); ++x) { // Postillon: +++ ++x angeblich schneller als x++ +++
 				for (int y=1; y<(N_[1]-1); ++y) {
 					for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
 						int index=this->Index(x, y, z, alpha);

@@ -131,7 +131,6 @@ bool Droplet::Hit(double* r1, double* r2) {
 		r2_minus_r1[i]=r2[i]-r1[i];
 	}
 	double l=sqrt(this->Dot(r2_minus_r1, r2_minus_r1));
-	//cout << "l: " << l << '\n';
 	return l <= (D/2 + d/2);
 }
 
@@ -146,7 +145,7 @@ double* Droplet::Collide(double m, double* r, double* v) {
 		p[i]=R[i]-r[i];
 	}
 	p=this->Normed(p);
-	
+
 	n=this->Cross(R, r, n);
 	t=this->Cross(n, p, t);
 	t=this->Normed(t);
@@ -175,13 +174,13 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		// determine grid point nearest to droplet position
 		double* r=new double[3];
 		for (int i=0; i<3; ++i) {
-			r[i]=round(R[i]/L); // note the new factor of 1/L...
+			r[i]=round(R[i]);
 		}
 
 		// exlcude collisions with outer grid points and make droplet stay in the box
 		double* n=new double[3];
 		if ((r[0]==N_[0]-1 || r[0]==0) || (r[1]==N_[1]-1 || r[1]==0) || ((N_[2]!=1) && (r[2]==N_[2]-1 || r[2]==0))) {
-			for (int i=0; i<3; ++i) n[i]=min(L*(N_[i]-1) - R[i], R[i]); // n[2] is always zero... NOTE the factor of L here!!!
+			for (int i=0; i<3; ++i) n[i]=min((N_[i]-1) - R[i], R[i]); // n[2] is always zero...
 			if ((N_[2]==1) && (n[2]==0)) n[2]=max(n[0], n[1]) + 1; // just make n[2] the biggest
 			double s=min(min(n[0], n[1]), n[2]);
 			for (int i=0; i<3; ++i) {
@@ -231,21 +230,19 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		}
 		//cout << '\n';
 
-		// there is energy loss during the collision --- only if L!=1.0???
+		// there is energy loss during the collision
 		// if droplet "comes back in"
-		if  (this->Hit(t)) { //(this->Hit(R, r_nearest)) {
+		if (this->Hit(R, r_nearest)) {//if (this->Hit(t)) { 
 			//cout << "Hit!" << '\n';
-			
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
 
 			// update r1 according to new velocity: r1=dt*rdot + r0
-			
 			for (int i=0; i<3; ++i) {
 				int index=Obj->Index(r[0], r[1], r[2], i);
 				Obj->rdot[index]=rdot_nearest[i]; // this is strictly speaking not necessary: rdot is not involved in the computation of the next step
 				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index]; //PROBLEM HERE, I think...
-				//cout << V[i] << "  " << "rdot_nearest: " << rdot_nearest[i] << " -------- ";
+				//Obj->r0[index]=Obj->r1[index] - dt*rdot_nearest[i];
 			}
 		}
 
