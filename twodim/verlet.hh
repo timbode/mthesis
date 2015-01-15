@@ -67,19 +67,19 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 		boost::uniform_real<> uni_dist(-1,1);
 		boost::variate_generator<base_generator_type&, boost::uniform_real<> > uni(generator, uni_dist);
 		//-----------------------------------------------------------------------------------------------
-
+		
 		// default initialization: positions must be set
 		for (int x=0; x<N_[0]; ++x) {
 			for (int y=0; y<N_[1]; ++y) {
 				for (int z=min(0, N_[2]); z<max(0, N_[2]); ++z) {
-					  r0[this->Index(x, y, z, 0)]=x;   r0[this->Index(x, y, z, 1)]=y;   r0[this->Index(x, y, z, 2)]=z;
-					  r1[this->Index(x, y, z, 0)]=x;   r1[this->Index(x, y, z, 1)]=y;   r1[this->Index(x, y, z, 2)]=z;
-					  r2[this->Index(x, y, z, 0)]=x;   r2[this->Index(x, y, z, 1)]=y;   r2[this->Index(x, y, z, 2)]=z;
+					  r0[this->Index(x, y, z, 0)]=L*x;   r0[this->Index(x, y, z, 1)]=L*y;   r0[this->Index(x, y, z, 2)]=L*z;
+					  r1[this->Index(x, y, z, 0)]=L*x;   r1[this->Index(x, y, z, 1)]=L*y;   r1[this->Index(x, y, z, 2)]=L*z;
+					  r2[this->Index(x, y, z, 0)]=L*x;   r2[this->Index(x, y, z, 1)]=L*y;   r2[this->Index(x, y, z, 2)]=L*z;
 					rdot[this->Index(x, y, z, 0)]=0;   rdot[this->Index(x, y, z, 1)]=0;   rdot[this->Index(x, y, z, 2)]=0;
 				}
 			}
 		}
-
+		
 		// make excitation
 		double scale_x=1e-3; // must not be too large - why, exactly?
 		double scale_y=1e-3;
@@ -87,9 +87,9 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 			for (int y=1; y<(N_[1]-1); ++y) {
 				for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
 					//cout << x << y << z << '\n';
-					r0[this->Index(x, y, z, 0)]+=scale_x*uni();   r0[this->Index(x, y, z, 1)]+=scale_y*uni();   r0[this->Index(x, y, z, 2)]+=0;
-					r1[this->Index(x, y, z, 0)]+=scale_x*uni();   r1[this->Index(x, y, z, 1)]+=scale_y*uni();   r1[this->Index(x, y, z, 2)]+=0;
-					r2[this->Index(x, y, z, 0)]+=scale_x*uni();   r2[this->Index(x, y, z, 1)]+=scale_y*uni();   r2[this->Index(x, y, z, 2)]+=0;
+					r0[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r0[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r0[this->Index(x, y, z, 2)]+=0;
+					r1[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r1[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r1[this->Index(x, y, z, 2)]+=0;
+					r2[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r2[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r2[this->Index(x, y, z, 2)]+=0;
 				}
 			}
 		}

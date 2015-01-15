@@ -26,9 +26,9 @@ double dt=1e-4; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
 double R_0 [3]={0.51, 0.510001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
-//double R_0 [3]={L*(N_[0]/2+0.5), L*(N_[1]/2+0.50001), L*0.0};
+//double R_0 [3]={N_[0]/2+0.5, N_[1]/2+0.50001, 0.0};
 //double V_0 [3]={-1, -1.0001, 0};
-double V_0 [3]={-0.01, -0.010001, 0};
+double V_0 [3]={-0.001, -0.0010001, 0};
 
 /*
 Verlet test(T, dt);

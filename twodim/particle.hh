@@ -23,6 +23,7 @@ class Particle {
 
 		unsigned int Steps; // number of steps
 		double dt; // recursion time
+		unsigned int T_col; // collision time
 
 		double* R; // coordinates
 		double* V; // velocities
@@ -33,6 +34,7 @@ class Particle {
 		double* Cross(double*, double*, double*);
 		void Reflect(double*);
 		bool Hit(double*, double*);
+		bool Hit(unsigned int);
 		double* Collide(double, double*, double*);
 		void Evolve(Verlet*, double*);
 };
@@ -40,6 +42,7 @@ class Particle {
 Particle::Particle(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_0, double* V_0) {
 	p=P; rep=Rep;
 	Steps=Steps_0; dt=dt_0;
+	T_col=1/(f*dt);
 	R=new double[3];
 	V=new double[3];
 
@@ -126,6 +129,10 @@ bool Particle::Hit(double* r1, double* r2) {
 	double l=sqrt(this->Dot(r2_minus_r1, r2_minus_r1));
 	//cout << "l: " << l << '\n';
 	return l <= (D/2 + d/2);
+}
+
+bool Particle::Hit(unsigned int tt) {
+	return (tt % T_col) == 0;
 }
 
 // this function is confirmed to be working properly; set 3x3 grid for inspection
