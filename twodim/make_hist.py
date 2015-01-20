@@ -66,7 +66,6 @@ mesh=ax.pcolormesh(xbins, ybins, all_counts)
 fig.colorbar(mesh)
 font_size=8
 x_text=0.1
-fig.text(x_text, 0.04, 'Verlet: '+'dt='+str(SystemData["dt"])+', '+'T='+str(SystemData["T"]), fontsize=font_size)
 if  SystemData["system_type"]=='particle':
 	fig.text(x_text, 0.07, 'Grid: '+'m='+str(SystemData["m"])+', '+'d='+str(SystemData["d"])+', '+'k='+str(SystemData["k"]), fontsize=font_size)
 	fig.text(x_text, 0.1, str.capitalize(SystemData["system_type"])+': '+'M='+str(SystemData["M"])+', '+'D='+str(SystemData["D"]), fontsize=font_size)
@@ -77,6 +76,7 @@ elif SystemData["system_type"]=='droplet':
 	fig.text(x_text, 0.1, str.capitalize(SystemData["system_type"])+': '+'M='+str(SystemData["M"])+', '+'f='+str(SystemData["f"]), fontsize=font_size)
 	plt.xlim(0, 1)
 	plt.ylim(0, 1)
+fig.text(x_text, 0.04, 'Verlet: '+str(SystemData["N_X"])+'x'+str(SystemData["N_Y"])+', '+'dt='+str(SystemData["dt"])+', '+'T='+str(SystemData["T"]), fontsize=font_size)
 plt.xlabel('x')
 plt.ylabel('y')
 #fig.tight_layout()

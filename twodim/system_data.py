@@ -33,4 +33,4 @@ def read():
     Dict["system_type"]=str(constants[13+1+1+1][2])
 
     global bins_x, bins_y
-    bins_x=50; bins_y=50
+    bins_x=30; bins_y=30

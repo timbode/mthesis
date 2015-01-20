@@ -76,7 +76,7 @@ Particle::~Particle() {
 	FileNameStream << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep + 1 << ".dat";
 	string FileName=FileNameStream.str();
 	state_data.open(FileName.c_str());
-
+	state_data.precision(15);
 	// write particle state to file
 	for (int i=0; i<3; ++i) {
 		state_data << R[i] << '\t';

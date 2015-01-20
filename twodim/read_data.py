@@ -60,16 +60,22 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 		X=[]; Y=[];
 		string=file.strip().split('_')
 		p=string[1]; rep=string[3][:-4]
+
+		# drop some reps...
+		#if rep < 1: continue
 		with open(SystemData["_DATA_"]+'/chunks/'+SystemData["system_type"]+'_'+p+'_chunk_'+rep+'.dat') as f:
 			for k, line in enumerate(f):
 				strang=line.strip().split()
-				X.append(float(strang[0]))
-				Y.append(float(strang[1]))
 				if float(p) == 0:
 					if k % 1000 == 0:
 						E.append(float(strang[2]))
 						E_grid.append(float(strang[3]))
 						E_tot.append(float(strang[2]) + float(strang[3]))
+				# burn-in
+				if k < 5e5: continue # drop at least 5e5 steps
+						
+				X.append(float(strang[0]))
+				Y.append(float(strang[1]))
 
 			f.close()
 
@@ -80,13 +86,21 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 					g.write(str(element)+'\t')
 				g.write('\n')
 
-# energy
+#energies
+# grid energy
 fig=plt.figure(figsize=(20,10))
-plt.title('Energies')
 t_axis=arange(0, len(E))
-plt.plot(t_axis, E)
-plt.plot(t_axis, E_grid)
-plt.plot(t_axis, E_tot)
+ax1=plt.subplot(211)
+ax1.plot(t_axis, E_grid)
+ax1.plot(t_axis, E_tot)
+plt.title('Grid energy')
+plt.xlabel('t')
+plt.ylabel('E')
+
+# droplet energy
+ax2=plt.subplot(212)
+ax2.plot(t_axis, E)
+plt.title('Droplet energy')
 plt.xlabel('t')
 plt.ylabel('E')
 fig.savefig('data/plots/energies.png')

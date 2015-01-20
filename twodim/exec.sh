@@ -21,15 +21,12 @@ export OMP_NUM_THREADS=6
 # compile
 icc -fopenmp -O3 -o main main.cc
 
-#loop particles and repetitions
-stats=1
-repeat=20
+#loop repetitions
+repeat=1 # HERE IT IS AT LAST: too many reps give energy loss!
 start=0
 time {
-for ((p=0; p<$stats; ++p)); do
-  for ((rep=$start; rep<$repeat; ++rep)); do
-      nice -n 19 ./main $repeat $p $rep;
-  done
+for ((rep=$start; rep<$repeat; ++rep)); do
+	nice -n 19 ./main $repeat 0 $rep;
 done
 echo -e "\n"
 }

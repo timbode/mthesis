@@ -55,7 +55,6 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 	rdot=new double[Max];
 
 	if (rep==0) {
-
 		//----------------------------------------------------------------------------------------------
 		// create a random generator for each system
 		base_generator_type generator(42u);
@@ -67,7 +66,7 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 		boost::uniform_real<> uni_dist(-1,1);
 		boost::variate_generator<base_generator_type&, boost::uniform_real<> > uni(generator, uni_dist);
 		//-----------------------------------------------------------------------------------------------
-		
+
 		// default initialization: positions must be set
 		for (int x=0; x<N_[0]; ++x) {
 			for (int y=0; y<N_[1]; ++y) {
@@ -79,10 +78,10 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 				}
 			}
 		}
-		
+
 		// make excitation
-		double scale_x=1e-3; // must not be too large - why, exactly?
-		double scale_y=1e-3;
+		double scale_x=1e-1;
+		double scale_y=1e-1;
 		for (int x=1; x<(N_[0]-1); ++x) {
 			for (int y=1; y<(N_[1]-1); ++y) {
 				for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
@@ -109,13 +108,12 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 		double rr0; double rr1; double rr2;
 		while (state_data >> rr0 >> rr1 >> rr2) {
 			r0[i]=rr0; r1[i]=rr1; r2[i]=rr2;
-			//cout << "construction: " << i << "  " << r0[i] << "  " << r1[i] << '\n';
+			//cout << setprecision(15) << "construction: " << i << "  " << r0[i] << "  " << r1[i] << "  " << r2[i] << '\n';
 			++i;
 		}
 
 		state_data.close();
 	}
-
 }
 
 Verlet::~Verlet() {
@@ -131,7 +129,7 @@ Verlet::~Verlet() {
 		state_data << r0[i] << '\t';
 		state_data << r1[i] << '\t';
 		state_data << r2[i] << '\n';
-		//cout << "destruction: " << i << "  " << r0[i] << "  " << r1[i] << '\n';
+		//cout << setprecision(15) << "destruction: " << i << "  " << r0[i] << "  " << r1[i] << "  " << r2[i] << '\n';
 	}
 
 	state_data.close();

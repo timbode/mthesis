@@ -22,13 +22,26 @@ unsigned int p=atof(argv[2]);
 unsigned int rep=atof(argv[3]);
 
 unsigned int steps=1e6;
-double dt=1e-4; // should be 1e-5 or 1e-6
+double dt=1e-5; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
-double R_0 [3]={0.51, 0.510001, 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
+//----------------------------------------------------------------------------------------------
+// create a random generator for each system
+base_generator_type GEN(42u);
+// set seed to system time (probably change this to something else)
+GEN.seed(static_cast<unsigned int>(time(0)));
+
+// Define a uniform random number distribution which produces "double"
+// values between 0 and 1 (0 inclusive, 1 exclusive).
+boost::uniform_real<> UNI_DIST(0,1);
+boost::variate_generator<base_generator_type&, boost::uniform_real<> > UNI(GEN, UNI_DIST);
+//-----------------------------------------------------------------------------------------------
+
+double R_0 [3]={UNI(), UNI(), 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
 //double R_0 [3]={N_[0]/2+0.5, N_[1]/2+0.50001, 0.0};
 //double V_0 [3]={-1, -1.0001, 0};
-double V_0 [3]={-0.001, -0.0010001, 0};
+//double V_0 [3]={-0.000001, -0.0000010001, 0};
+double V_0 [3]={0, 0, 0};
 
 /*
 Verlet test(T, dt);

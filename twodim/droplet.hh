@@ -42,7 +42,7 @@ class Droplet {
 Droplet::Droplet(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_0, double* V_0) {
 	p=P; rep=Rep;
 	Steps=Steps_0; dt=dt_0;
-	T_col=1/(f*dt);
+	T_col=(1/f)*(1/dt);
 	R=new double[3];
 	V=new double[3];
 
@@ -62,6 +62,7 @@ Droplet::Droplet(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_0,
 		double RR; double VV;
 		while (state_data >> RR >> VV) {
 			R[i]=RR; V[i]=VV;
+			//cout << setprecision(15) << "construction: " << V[i] << "   " << VV << "\n";
 			++i;
 		}
 
@@ -76,7 +77,7 @@ Droplet::~Droplet() {
 	FileNameStream << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep + 1 << ".dat";
 	string FileName=FileNameStream.str();
 	state_data.open(FileName.c_str());
-
+	state_data.precision(15);
 	// write droplet state to file
 	for (int i=0; i<3; ++i) {
 		state_data << R[i] << '\t';
@@ -127,7 +128,6 @@ bool Droplet::Hit(double* r1, double* r2) {
 		r2_minus_r1[i]=r2[i]-r1[i];
 	}
 	double l=sqrt(this->Dot(r2_minus_r1, r2_minus_r1));
-	//cout << "l: " << l << '\n';
 	return l <= (D/2 + d/2);
 }
 
@@ -193,7 +193,9 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 			}
 
 			// reflect
-			if ((s <= 0) && (this->Dot(n, V) > 0)) this->Reflect(n); // second condition is to avoid that droplet gets stuck in the corner
+			if ((s <= 0) && (this->Dot(n, V) > 0)) {
+				this->Reflect(n); // second condition is to avoid that droplet gets stuck in the corner
+			}
 
 			// evolve droplet
 			for (int i=0; i<3; ++i) {
@@ -234,7 +236,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		//cout << '\n';
 
 		// check if it is time
-		if (this->Hit(t)) { //if (this->Hit(R, r_nearest)) {
+		if (this->Hit(t)) { // if (this->Hit(R, r_nearest)) {
 			//cout << "Hit!" << '\n';
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
@@ -259,7 +261,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				*datarr=R[i];
 				++datarr;
 			}
-			//cout << R[i] << ", ";
+			//cout << V[i] << ", ";
 		}
 		*datarr=E; ++datarr;
 		//cout << '\n';
