@@ -17,12 +17,12 @@ using namespace Constants;
 
 int main(int argc, char* argv[]) {
 
-unsigned int repeat=atof(argv[1]);
-unsigned int p=atof(argv[2]);
-unsigned int rep=atof(argv[3]);
+int repeat=atoi(argv[1]);
+int p=atoi(argv[2]);
+int rep=atoi(argv[3]);
 
-unsigned int steps=1e6;
-double dt=1e-5; // should be 1e-5 or 1e-6
+int steps=1e5;
+double dt=1e-4; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
 //----------------------------------------------------------------------------------------------

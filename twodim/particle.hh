@@ -23,7 +23,7 @@ class Particle {
 
 		unsigned int Steps; // number of steps
 		double dt; // recursion time
-		unsigned int T_col; // collision time
+		int T_col; // collision time
 
 		double* R; // coordinates
 		double* V; // velocities
@@ -169,11 +169,11 @@ double* Particle::Collide(double m, double* r, double* v) {
 // underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 void Particle::Evolve(Verlet* Obj, double* datarr) {
 	for (unsigned int t=0; t<Steps; t++) {
-		double E; // particle energy
+		double E=0; // particle energy
 		double E_grid; // grid energy
 
 		// determine grid point nearest to particle position
-		double* r=new double[3];
+		int* r=new int[3];
 		for (int i=0; i<3; ++i) {
 			r[i]=round(R[i]);
 			}

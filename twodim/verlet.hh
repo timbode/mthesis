@@ -9,6 +9,7 @@
 
 // random numbers
 #include <ctime>
+// do not forget to include and export path in boost in .bashrc
 #include </home/students/lappet/Documents/Masterarbeit/boost_1_56_0/boost/random.hpp>
 #include </home/students/lappet/Documents/Masterarbeit/boost_1_56_0/boost/generator_iterator.hpp>
 

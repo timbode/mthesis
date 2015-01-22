@@ -23,7 +23,7 @@ class Droplet {
 
 		unsigned int Steps; // number of steps
 		double dt; // recursion time
-		unsigned int T_col; // collision time
+		int T_col; // collision time
 
 		double* R; // coordinates
 		double* V; // velocities
@@ -42,7 +42,8 @@ class Droplet {
 Droplet::Droplet(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_0, double* V_0) {
 	p=P; rep=Rep;
 	Steps=Steps_0; dt=dt_0;
-	T_col=(1/f)*(1/dt);
+	T_col=1000;//(1/f)*(1/dt);
+	cout << T_col << "\n";
 	R=new double[3];
 	V=new double[3];
 
@@ -169,15 +170,15 @@ double* Droplet::Collide(double m, double* r, double* v) {
 // underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 void Droplet::Evolve(Verlet* Obj, double* datarr) {
 	for (unsigned int t=0; t<Steps; t++) {
-		double E; // droplet energy
+		double E=0; // droplet energy --- should be initialized to 0: icc handles it anyway, g++ does not ...
 		double E_grid; // grid energy
 
 		// determine grid point nearest to droplet position
-		double* r=new double[3];
+		int* r=new int[3];
 		for (int i=0; i<3; ++i) {
 			r[i]=round(R[i]/L); // NOTE: factor of 1/L
 			}
-
+			
 		// exlcude collisions with outer grid points and make droplet stay in the box
 		double* n=new double[3];
 		if ((r[0]==N_[0]-1 || r[0]==0) || (r[1]==N_[1]-1 || r[1]==0) || ((N_[2]!=1) && (r[2]==N_[2]-1 || r[2]==0))) {
@@ -256,6 +257,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		for (int i=0; i<3; ++i) {
 			R[i]=R[i] + dt*V[i];
 			E+=0.5*M*V[i]*V[i]; // energy
+			//cout << E << "     ";
 
 			if (i<dim) {
 				*datarr=R[i];
