@@ -196,7 +196,7 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 			if ((s <= 0) && (this->Dot(n, V) > 0)) this->Reflect(n); // second condition is to avoid that particle gets stuck in the corner
 
 			// evolve particle
-			for (int i=0; i<3; ++i) {
+			for (unsigned int i=0; i<3; ++i) {
 				R[i]=R[i] + dt*V[i];
 				E+=0.5*M*V[i]*V[i]; // energy
 
@@ -251,7 +251,7 @@ void Particle::Evolve(Verlet* Obj, double* datarr) {
 
 		// evolve particle
 		//cout << "Particle: ";
-		for (int i=0; i<3; ++i) {
+		for (unsigned int i=0; i<3; ++i) {
 			R[i]=R[i] + dt*V[i];
 			E+=0.5*M*V[i]*V[i]; // energy
 

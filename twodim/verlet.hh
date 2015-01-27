@@ -44,7 +44,7 @@ class Verlet {
 		double NearestNeighbours(int, int, int, int);
 		double PotentialEnergy(int, int, int, int, int);
 		double Step();
-		void Evolve();
+		void Burn_in();
 
 }; // do not forget the funny semicolon down here...
 
@@ -86,7 +86,11 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 		for (int x=1; x<(N_[0]-1); ++x) {
 			for (int y=1; y<(N_[1]-1); ++y) {
 				for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
-					//cout << x << y << z << '\n';
+					// do not excite if wall and if not slit
+					if (wall) {
+						if ((left_face_pos <= x) && (x <= right_face_pos) && !(((slit_1_lower < y) && (y < slit_1_upper)) || ((slit_2_lower < y) && (y < slit_2_upper)))) continue;
+					}
+
 					r0[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r0[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r0[this->Index(x, y, z, 2)]+=0;
 					r1[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r1[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r1[this->Index(x, y, z, 2)]+=0;
 					r2[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r2[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r2[this->Index(x, y, z, 2)]+=0;
@@ -94,22 +98,26 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 			}
 		}
 
+
 	}
 
 	else {
 		// tricky bug here: while it is true that r2 is overwritten during the first time step,
 		// that holds only for the inner components -
 		// the boundary components will be randomly initialized if not set below...
+		// and that's also true of rdot!
 		ifstream state_data;
 		ostringstream FileNameStream;
 		FileNameStream << _DATA_ << "/init/grid_" << p << "_init_chunk_" << rep << ".dat";
 		string FileName=FileNameStream.str();
 		state_data.open(FileName.c_str());
+		state_data.precision(15);
 		int i=0;
 		double rr0; double rr1; double rr2;
-		while (state_data >> rr0 >> rr1 >> rr2) {
+		double rrdot;
+		while (state_data >> rr0 >> rr1 >> rr2 >> rrdot) {
 			r0[i]=rr0; r1[i]=rr1; r2[i]=rr2;
-			//cout << setprecision(15) << "construction: " << i << "  " << r0[i] << "  " << r1[i] << "  " << r2[i] << '\n';
+			rdot[i]=rrdot;
 			++i;
 		}
 
@@ -126,11 +134,11 @@ Verlet::~Verlet() {
 	state_data.open(FileName.c_str());
 	state_data.precision(15); // precision in writing must be high - otherwise there appear discontinuities in the energy when repeating (division by small dt?)
 	// write grid positions to file
-	for (int i=0; i<Max; ++i) {
+	for (unsigned int i=0; i<Max; ++i) {
 		state_data << r0[i] << '\t';
 		state_data << r1[i] << '\t';
-		state_data << r2[i] << '\n';
-		//cout << setprecision(15) << "destruction: " << i << "  " << r0[i] << "  " << r1[i] << "  " << r2[i] << '\n';
+		state_data << r2[i] << '\t';
+		state_data << rdot[i] << '\n';
 	}
 
 	state_data.close();
@@ -168,12 +176,18 @@ double Verlet::PotentialEnergy(int Ind, int X, int Y, int Z, int Alpha) {
 }
 
 double Verlet::Step() {
-		double E; // energy
+		double E=0; // energy
 		#pragma omp parallel for collapse(4) reduction(+:E)
 		for (int alpha=0; alpha<3; ++alpha) {
 			for (int x=1; x<(N_[0]-1); ++x) { // Postillon: +++ ++x angeblich schneller als x++ +++
 				for (int y=1; y<(N_[1]-1); ++y) {
 					for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
+
+						// continue if wall and if not slit
+						if (wall) {
+							if ((left_face_pos <= x) && (x <= right_face_pos) && !(((slit_1_lower < y) && (y < slit_1_upper)) || ((slit_2_lower < y) && (y < slit_2_upper)))) continue;
+						}
+
 						int index=this->Index(x, y, z, alpha);
 						r2[index]=2*r1[index] - r0[index] - ((k/m)*dt*dt)*(2*dim*r1[index] - NearestNeighbours(x, y, z, alpha)); // ((k/m)*dt*dt) must be << 1
 						rdot[index]=(r2[index] - r1[index])/dt; // (r2[index] - r0[index])/(2*dt)
@@ -185,12 +199,11 @@ double Verlet::Step() {
 			}
 		}
 		r0=r1; r1=r2; r2=r0;
-
 		return E;
 }
 
-void Verlet::Evolve() {
-	for (int t=0; t<T/dt; t++) {
+void Verlet::Burn_in() {
+	for (int t=0; t<1e5; t++) {
 		this->Step();
 	}
 }

@@ -9,11 +9,11 @@ mkdir -vp $folder $folder/chunks $folder/hist $folder/init $folder/plots
 export OMP_NUM_THREADS=6
 
 # compile
-icc -openmp -O3 -o main main.cc
-#g++ -fopenmp -O3 -o main main.cc
+#icc -openmp -O3 -o main main.cc
+g++ -Wall -fopenmp -O3 -o main main.cc
 
 #loop repetitions
-repeat=50
+repeat=100
 start=0
 time {
 for ((rep=$start; rep<$repeat; ++rep)); do

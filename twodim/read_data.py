@@ -51,7 +51,7 @@ if  SystemData["system_type"]=='particle':
 	ybins=arange(0, (SystemData["N_Y"]-1)+bin_size_y, bin_size_y)
 elif SystemData["system_type"]=='droplet':
 	# binning
-	xbins=linspace(0, 1, bins_x+1)
+	xbins=linspace(0, 2, bins_x+1)
 	ybins=linspace(0, 1, bins_y+1)
 
 E=[]; E_grid=[]; E_tot=[];
@@ -61,8 +61,6 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 		string=file.strip().split('_')
 		p=string[1]; rep=string[3][:-4]
 
-		# drop some reps...
-		#if rep < 1: continue
 		with open(SystemData["_DATA_"]+'/chunks/'+SystemData["system_type"]+'_'+p+'_chunk_'+rep+'.dat') as f:
 			for k, line in enumerate(f):
 				strang=line.strip().split()
@@ -72,7 +70,7 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 						E_grid.append(float(strang[3]))
 						E_tot.append(float(strang[2]) + float(strang[3]))
 				# burn-in
-				if k < 5e5: continue # drop at least 5e5 steps
+				#if k < 1e5: continue # drop at least 5e5 steps
 						
 				X.append(float(strang[0]))
 				Y.append(float(strang[1]))

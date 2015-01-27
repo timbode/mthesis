@@ -21,8 +21,8 @@ int repeat=atoi(argv[1]);
 int p=atoi(argv[2]);
 int rep=atoi(argv[3]);
 
-int steps=1e5;
-double dt=1e-4; // should be 1e-5 or 1e-6
+int steps=5e5;
+double dt=1e-5; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
 //----------------------------------------------------------------------------------------------
@@ -37,40 +37,12 @@ boost::uniform_real<> UNI_DIST(0,1);
 boost::variate_generator<base_generator_type&, boost::uniform_real<> > UNI(GEN, UNI_DIST);
 //-----------------------------------------------------------------------------------------------
 
-double R_0 [3]={UNI(), UNI(), 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
-//double R_0 [3]={N_[0]/2+0.5, N_[1]/2+0.50001, 0.0};
-//double V_0 [3]={-1, -1.0001, 0};
+//Double R_0 [3]={UNI(), UNI(), 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
+double R_0 [3]={0.01, 0.60001, 0.0};
+if (rep==0) for (int i=0; i<3; ++i) cout << R_0[i] << "\n";
+double V_0 [3]={0.1, 0.0, 0.0};
 //double V_0 [3]={-0.000001, -0.0000010001, 0};
-double V_0 [3]={0, 0, 0};
-
-/*
-Verlet test(T, dt);
-
-test.r1[test.Index(1, 1, 0, 0)]+=0.05;
-test.r0[test.Index(1, 1, 0, 0)]+=0.05;
-test.r1[test.Index(1, 1, 0, 1)]+=0.05;
-test.r0[test.Index(1, 1, 0, 1)]+=0.05;
-
-// open file
-ofstream grid_data;
-grid_data.open("data/grid.dat");
-
-for (int tt=0; tt<T/dt; tt++) {
-	for (int x=0; x<N_[0]; x++) {
-		for (int y=0; y<N_[1]; y++) {
-			for (int z=0; z<N_[2]; z++) {
-				for (int alpha=0; alpha<3; alpha++) {
-					grid_data << test.r1[test.Index(x, y, z, alpha)] << ",";
-				}
-				grid_data << '\t';
-			}
-		}
-	}
-	grid_data << '\n';
-	test.Evolve();
-}
-grid_data.close();
-*/
+//double V_0 [3]={0, 0, 0};
 
 unsigned int stats=1;
 
@@ -105,12 +77,16 @@ system_data.open(FileName.c_str());
 }
 system_data.close();
 
-//vector< vector<double> > R_0s(stats, vector<double>(3));
-//vector< vector<double> > V_0s(stats, vector<double>(3));
-
+// keep track of repetition status
 cout << " ... " << rep;
+
 // create grid instance
 Verlet grid(p, rep, T, dt); // replace T by steps
+
+// make burn-in
+if (wall) {
+	grid.Burn_in();
+}
 
 vector<double> data_array((dim+2)*steps, 0.0);
 
@@ -133,10 +109,10 @@ ostringstream FileNameStream2;
 FileNameStream2 << _DATA_ << "/chunks/" << system_type << "_" << p << "_chunk_" << rep << ".dat";
 string FileName2=FileNameStream2.str();
 data.open(FileName2.c_str());
-
+//data.precision(15);
 // write array to file
 for (int t=0; t<steps; ++t) {
-	for (int u=0; u<(dim+2); ++u) {
+	for (unsigned int u=0; u<(dim+2); ++u) {
 		data << data_array[(dim+2)*t+u] << '\t';
 	}
 	data << '\n';

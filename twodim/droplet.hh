@@ -23,7 +23,7 @@ class Droplet {
 
 		unsigned int Steps; // number of steps
 		double dt; // recursion time
-		int T_col; // collision time
+		unsigned int T_col; // collision time
 
 		double* R; // coordinates
 		double* V; // velocities
@@ -42,8 +42,8 @@ class Droplet {
 Droplet::Droplet(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_0, double* V_0) {
 	p=P; rep=Rep;
 	Steps=Steps_0; dt=dt_0;
-	T_col=1000;//(1/f)*(1/dt);
-	cout << T_col << "\n";
+	T_col=(1/f)*(1/dt) + 0.5; // is this reliable?
+	if (rep == 0) cout << "T_col is: " << T_col << "\n";
 	R=new double[3];
 	V=new double[3];
 
@@ -59,11 +59,11 @@ Droplet::Droplet(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_0,
 		FileNameStream << _DATA_ << "/init/" << system_type << "_" << p << "_init_chunk_" << rep << ".dat";
 		string FileName=FileNameStream.str();
 		state_data.open(FileName.c_str());
+		state_data.precision(15);
 		int i=0;
 		double RR; double VV;
 		while (state_data >> RR >> VV) {
 			R[i]=RR; V[i]=VV;
-			//cout << setprecision(15) << "construction: " << V[i] << "   " << VV << "\n";
 			++i;
 		}
 
@@ -178,9 +178,13 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		for (int i=0; i<3; ++i) {
 			r[i]=round(R[i]/L); // NOTE: factor of 1/L
 			}
-			
+
 		// exlcude collisions with outer grid points and make droplet stay in the box
 		double* n=new double[3];
+
+		double* n_wall=new double[3]; n_wall[0]=1; n_wall[1]=0; n_wall[2]=0;
+		double* n_slit=new double[3]; n_slit[0]=0; n_slit[1]=1; n_slit[2]=0;
+
 		if ((r[0]==N_[0]-1 || r[0]==0) || (r[1]==N_[1]-1 || r[1]==0) || ((N_[2]!=1) && (r[2]==N_[2]-1 || r[2]==0))) {
 			for (int i=0; i<3; ++i) n[i]=min(L*(N_[i]-1) - R[i], R[i]); // n[2] is always zero... NOTE: factor of L
 			if ((N_[2]==1) && (n[2]==0)) n[2]=max(n[0], n[1]) + 1; // just make n[2] the biggest
@@ -198,8 +202,11 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				this->Reflect(n); // second condition is to avoid that droplet gets stuck in the corner
 			}
 
+			// make sure particle cannot slip through at the boundary
+			if ((L*left_face_pos <= R[0]) && (R[0] <= L*right_face_pos)) this->Reflect(n_wall);
+
 			// evolve droplet
-			for (int i=0; i<3; ++i) {
+			for (unsigned int i=0; i<3; ++i) {
 				R[i]=R[i] + dt*V[i];
 				E+=0.5*M*V[i]*V[i]; // energy
 
@@ -207,11 +214,8 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					*datarr=R[i];
 					++datarr;
 				}
-				//cout << V[i] << ", ";
-				//cout << R[i] << ", ";
 			}
 			*datarr=E; ++datarr;
-			//cout << '\n';
 
 			// evolve grid
 			E_grid=Obj->Step();
@@ -221,24 +225,95 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		}
 
 		// ------------------------------------------------------------------------------------------------
+		if (wall) {
+			if ((L*left_face_pos < R[0]) && (R[0] < L*right_face_pos)) { // between the wall faces --- strict inequality here: else entering middle block?
+				if (!(((L*slit_1_lower < R[1]) && (R[1] < L*slit_1_upper)) || ((L*slit_2_lower < R[1]) && (R[1] < L*slit_2_upper)))) { // if not inside one of the slits
+
+				this->Reflect(n_wall);
+
+				// evolve droplet
+				for (unsigned int i=0; i<3; ++i) {
+					R[i]=R[i] + dt*V[i];
+					E+=0.5*M*V[i]*V[i]; // energy
+
+					if (i<dim) {
+						*datarr=R[i];
+						++datarr;
+					}
+				}
+				*datarr=E; ++datarr;
+
+				// evolve grid
+				E_grid=Obj->Step();
+				*datarr=E_grid; ++datarr;
+
+				continue;
+				}
+			}
+
+			if ((L*slit_1_lower < R[1]) && (R[1] < L*slit_1_upper)) {
+				if ((L*left_face_pos < R[0]) && (R[0] < L*right_face_pos)) {
+
+					this->Reflect(n_slit);
+
+					// evolve droplet
+					for (unsigned int i=0; i<3; ++i) {
+						R[i]=R[i] + dt*V[i];
+						E+=0.5*M*V[i]*V[i]; // energy
+
+						if (i<dim) {
+							*datarr=R[i];
+							++datarr;
+						}
+					}
+					*datarr=E; ++datarr;
+
+					// evolve grid
+					E_grid=Obj->Step();
+					*datarr=E_grid; ++datarr;
+
+					continue;
+				}
+			}
+
+			if ((L*slit_2_lower < R[1]) && (R[1] < L*slit_2_upper)) {
+				if ((L*left_face_pos < R[0]) && (R[0] < L*right_face_pos)) {
+
+					this->Reflect(n_slit);
+
+					// evolve droplet
+					for (unsigned int i=0; i<3; ++i) {
+						R[i]=R[i] + dt*V[i];
+						E+=0.5*M*V[i]*V[i]; // energy
+
+						if (i<dim) {
+							*datarr=R[i];
+							++datarr;
+						}
+					}
+					*datarr=E; ++datarr;
+
+					// evolve grid
+					E_grid=Obj->Step();
+					*datarr=E_grid; ++datarr;
+
+					continue;
+				}
+			}
+		}
+		// ------------------------------------------------------------------------------------------------
 
 		// determine actual position and velocity
 		double* r_nearest=new double[3];
 		double* rdot_nearest=new double[3];
 		for (int i=0; i<3; ++i) {
-			//cout << "trouble: " << r[i] << ", ";
 			int index=Obj->Index(r[0], r[1], r[2], i);
-			//cout << "index: " << index << "   " <<  Obj->r1[index] << '\n';
 			r_nearest[i]=Obj->r1[index];
 			rdot_nearest[i]=Obj->rdot[index];
-			//cout << "r_nearest: " << r_nearest[i] << ", ";
-			//cout << R[i] << ", ";
 		}
-		//cout << '\n';
 
 		// check if it is time
-		if (this->Hit(t)) { // if (this->Hit(R, r_nearest)) {
-			//cout << "Hit!" << '\n';
+		if (this->Hit(t)) {
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
 
@@ -247,26 +322,20 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				int index=Obj->Index(r[0], r[1], r[2], i);
 				Obj->rdot[index]=rdot_nearest[i];
 				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index];
-				//cout  << Obj->rdot[index] << ", ";
 			}
-			//cout << '\n';
 		}
 
 		// evolve droplet
-		//cout << "Droplet: ";
-		for (int i=0; i<3; ++i) {
+		for (unsigned int i=0; i<3; ++i) {
 			R[i]=R[i] + dt*V[i];
 			E+=0.5*M*V[i]*V[i]; // energy
-			//cout << E << "     ";
 
 			if (i<dim) {
 				*datarr=R[i];
 				++datarr;
 			}
-			//cout << V[i] << ", ";
 		}
 		*datarr=E; ++datarr;
-		//cout << '\n';
 
 		// evolve grid
 		E_grid=Obj->Step();
