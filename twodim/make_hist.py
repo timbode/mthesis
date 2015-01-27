@@ -30,7 +30,7 @@ if  SystemData["system_type"]=='particle':
 	ybins=arange(0, (SystemData["N_Y"]-1)+bin_size_y, bin_size_y)
 elif SystemData["system_type"]=='droplet':
 	# binning
-	xbins=linspace(0, 2, bins_x+1)
+	xbins=linspace(0, (SystemData["N_X"]-1)/(SystemData["N_Y"]-1), bins_x+1) # use number of grid points to derive box size
 	ybins=linspace(0, 1, bins_y+1)
 
 # 2D histogram
@@ -74,7 +74,7 @@ if  SystemData["system_type"]=='particle':
 elif SystemData["system_type"]=='droplet':
 	fig.text(x_text, 0.07, 'Grid: '+'m='+str(SystemData["m"])+', '+'k='+str(SystemData["k"]), fontsize=font_size)
 	fig.text(x_text, 0.1, str.capitalize(SystemData["system_type"])+': '+'M='+str(SystemData["M"])+', '+'f='+str(SystemData["f"]), fontsize=font_size)
-	plt.xlim(0, 2)
+	plt.xlim(0, (SystemData["N_X"]-1)/(SystemData["N_Y"]-1))
 	plt.ylim(0, 1)
 fig.text(x_text, 0.04, 'Verlet: '+str(SystemData["N_X"])+'x'+str(SystemData["N_Y"])+', '+'dt='+str(SystemData["dt"])+', '+'T='+str(SystemData["T"]), fontsize=font_size)
 plt.xlabel('x')

@@ -80,20 +80,22 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 			}
 		}
 
-		// make excitation
-		double scale_x=1e-1;
-		double scale_y=1e-1;
-		for (int x=1; x<(N_[0]-1); ++x) {
-			for (int y=1; y<(N_[1]-1); ++y) {
-				for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
-					// do not excite if wall and if not slit
-					if (wall) {
-						if ((left_face_pos <= x) && (x <= right_face_pos) && !(((slit_1_lower < y) && (y < slit_1_upper)) || ((slit_2_lower < y) && (y < slit_2_upper)))) continue;
-					}
+		if (excitation) {
+			// make excitation
+			double scale_x=1e-1;
+			double scale_y=1e-1;
+			for (int x=1; x<(N_[0]-1); ++x) {
+				for (int y=1; y<(N_[1]-1); ++y) {
+					for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
+						// do not excite if wall and if not slit
+						if (wall) {
+							if ((left_face_pos <= x) && (x <= right_face_pos) && !(((slit_1_lower < y) && (y < slit_1_upper)) || ((slit_2_lower < y) && (y < slit_2_upper)))) continue;
+						}
 
-					r0[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r0[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r0[this->Index(x, y, z, 2)]+=0;
-					r1[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r1[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r1[this->Index(x, y, z, 2)]+=0;
-					r2[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r2[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r2[this->Index(x, y, z, 2)]+=0;
+						r0[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r0[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r0[this->Index(x, y, z, 2)]+=0;
+						r1[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r1[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r1[this->Index(x, y, z, 2)]+=0;
+						r2[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r2[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r2[this->Index(x, y, z, 2)]+=0;
+					}
 				}
 			}
 		}
@@ -126,7 +128,7 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 }
 
 Verlet::~Verlet() {
-	// save current state of the system --- does this state appear twice (before and after)?
+	// save current state of the system
 	ofstream state_data;
 	ostringstream FileNameStream;
 	FileNameStream << _DATA_ << "/init/grid_" << p << "_init_chunk_" << rep + 1 << ".dat";

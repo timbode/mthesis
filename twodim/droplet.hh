@@ -43,7 +43,7 @@ Droplet::Droplet(int P, int Rep, unsigned int Steps_0, double dt_0, double* R_0,
 	p=P; rep=Rep;
 	Steps=Steps_0; dt=dt_0;
 	T_col=(1/f)*(1/dt) + 0.5; // is this reliable?
-	if (rep == 0) cout << "T_col is: " << T_col << "\n";
+	if (rep == 0) cout << " --- T_col is: " << T_col << "\n";
 	R=new double[3];
 	V=new double[3];
 
@@ -225,35 +225,110 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		}
 
 		// ------------------------------------------------------------------------------------------------
+		// simplify this part
 		if (wall) {
 			if ((L*left_face_pos < R[0]) && (R[0] < L*right_face_pos)) { // between the wall faces --- strict inequality here: else entering middle block?
-				if (!(((L*slit_1_lower < R[1]) && (R[1] < L*slit_1_upper)) || ((L*slit_2_lower < R[1]) && (R[1] < L*slit_2_upper)))) { // if not inside one of the slits
+				
+				if (R[1] < 0.5) { // if inside slit 1
+					//cout << "HERE!" << L*slit_1_lower << '\n';
+					if (((R[1] < L*slit_1_lower) && (r[1] == slit_1_lower)) || ((R[1] < L*slit_1_upper) && (r[1] == slit_1_upper))) { // if touching one of the inside walls
+						
+						cout << "Slit 1: " << R[1] << "   " << V[1] << '\n';
+						
+						if (r[1] == slit_1_lower) n_slit[1]=-1;
+						
+						// reflect
+						if (this->Dot(n_slit, V) > 0) {
+							this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
+						}
+						
+						// evolve droplet
+						for (unsigned int i=0; i<3; ++i) {
+							R[i]=R[i] + dt*V[i];
+							E+=0.5*M*V[i]*V[i]; // energy
 
-				this->Reflect(n_wall);
+							if (i<dim) {
+								*datarr=R[i];
+								++datarr;
+							}
+						}
+						*datarr=E; ++datarr;
 
-				// evolve droplet
-				for (unsigned int i=0; i<3; ++i) {
-					R[i]=R[i] + dt*V[i];
-					E+=0.5*M*V[i]*V[i]; // energy
+						// evolve grid
+						E_grid=Obj->Step();
+						*datarr=E_grid; ++datarr;
 
-					if (i<dim) {
-						*datarr=R[i];
-						++datarr;
+						continue;
 					}
 				}
-				*datarr=E; ++datarr;
+				else { // if inside slit 2
+					if (((R[1] < L*slit_2_lower) && (r[1] == slit_2_lower)) || ((R[1] < L*slit_2_upper) && (r[1] == slit_2_upper))) { // if touching one of the inside walls
+						
+						cout << "Slit 2: " << R[1] << "   " << V[1] << '\n';
+						
+						if (r[1] == slit_2_lower) n_slit[1]=-1;
+						
+						// reflect
+						if (this->Dot(n_slit, V) > 0) {
+							this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
+						}
 
-				// evolve grid
-				E_grid=Obj->Step();
-				*datarr=E_grid; ++datarr;
+						// evolve droplet
+						for (unsigned int i=0; i<3; ++i) {
+							R[i]=R[i] + dt*V[i];
+							E+=0.5*M*V[i]*V[i]; // energy
 
-				continue;
+							if (i<dim) {
+								*datarr=R[i];
+								++datarr;
+							}
+						}
+						*datarr=E; ++datarr;
+
+						// evolve grid
+						E_grid=Obj->Step();
+						*datarr=E_grid; ++datarr;
+
+						continue;
+					}
+				
 				}
-			}
+				
+				if (!(((L*slit_1_lower < R[1]) && (R[1] < L*slit_1_upper)) || ((L*slit_2_lower < R[1]) && (R[1] < L*slit_2_upper)))) { // if not inside one of the slits
 
+					// if the droplet touches the boundary and would be reflected, the given run can be discarded
+					cout << "Crashed into the wall!"<< R[1]<< "   " << V[0] << "   " << R[0] << '\n';
+					//break;
+				
+					this->Reflect(n_wall);
+
+					// evolve droplet
+					for (unsigned int i=0; i<3; ++i) {
+						R[i]=R[i] + dt*V[i];
+						E+=0.5*M*V[i]*V[i]; // energy
+
+						if (i<dim) {
+							*datarr=R[i];
+							++datarr;
+						}
+					}
+					*datarr=E; ++datarr;
+
+					// evolve grid
+					E_grid=Obj->Step();
+					*datarr=E_grid; ++datarr;
+
+					continue;
+				}
+				
+			}
+/*
 			if ((L*slit_1_lower < R[1]) && (R[1] < L*slit_1_upper)) {
 				if ((L*left_face_pos < R[0]) && (R[0] < L*right_face_pos)) {
-
+				
+					//cout << "Touched inside slit 1! - Continuing..." << '\n';
+					//break;
+					
 					this->Reflect(n_slit);
 
 					// evolve droplet
@@ -279,6 +354,9 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 			if ((L*slit_2_lower < R[1]) && (R[1] < L*slit_2_upper)) {
 				if ((L*left_face_pos < R[0]) && (R[0] < L*right_face_pos)) {
 
+					//cout << "Touched inside slit 2! - Continuing..." << '\n';
+					//break;
+
 					this->Reflect(n_slit);
 
 					// evolve droplet
@@ -300,6 +378,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					continue;
 				}
 			}
+		*/
 		}
 		// ------------------------------------------------------------------------------------------------
 

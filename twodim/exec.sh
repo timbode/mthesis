@@ -13,7 +13,7 @@ export OMP_NUM_THREADS=6
 g++ -Wall -fopenmp -O3 -o main main.cc
 
 #loop repetitions
-repeat=100
+repeat=20
 start=0
 time {
 for ((rep=$start; rep<$repeat; ++rep)); do

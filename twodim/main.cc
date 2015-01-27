@@ -21,8 +21,8 @@ int repeat=atoi(argv[1]);
 int p=atoi(argv[2]);
 int rep=atoi(argv[3]);
 
-int steps=5e5;
-double dt=1e-5; // should be 1e-5 or 1e-6
+int steps=2e5;
+double dt=1e-4; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
 //----------------------------------------------------------------------------------------------
@@ -33,14 +33,26 @@ GEN.seed(static_cast<unsigned int>(time(0)));
 
 // Define a uniform random number distribution which produces "double"
 // values between 0 and 1 (0 inclusive, 1 exclusive).
-boost::uniform_real<> UNI_DIST(0,1);
+boost::uniform_real<> UNI_DIST(-1,1);
 boost::variate_generator<base_generator_type&, boost::uniform_real<> > UNI(GEN, UNI_DIST);
 //-----------------------------------------------------------------------------------------------
 
 //Double R_0 [3]={UNI(), UNI(), 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
-double R_0 [3]={0.01, 0.60001, 0.0};
-if (rep==0) for (int i=0; i<3; ++i) cout << R_0[i] << "\n";
-double V_0 [3]={0.1, 0.0, 0.0};
+//double R_0 [3]={0.01, 0.5 + 1e-1*UNI(), 0.0};
+double R_0 [3]={0.5, 0.52, 0.0};
+if (rep==0) {
+	cout << "========================================================" << '\n';
+	cout << "Start position: ";
+	for (int i=0; i<3; ++i) cout << R_0[i] << '\t';
+	cout << '\n' << '\n';
+	if (wall) {
+		cout << "Wall is " << L*2*half_width << " thick" << '\n';
+		cout << "Slit centers at " << L*slit_1_lower + (L*slit_width)*0.5 << " (slit 1) and " << L*slit_2_upper - (L*slit_width)*0.5 << " (slit 2)" << '\n';
+		cout << "Slit width is " << L*slit_width << '\n';
+	}
+	cout << "========================================================" << '\n';
+}
+double V_0 [3]={0.1, -0.01, 0.0};
 //double V_0 [3]={-0.000001, -0.0000010001, 0};
 //double V_0 [3]={0, 0, 0};
 
@@ -84,7 +96,7 @@ cout << " ... " << rep;
 Verlet grid(p, rep, T, dt); // replace T by steps
 
 // make burn-in
-if (wall) {
+if (wall && excitation) {
 	grid.Burn_in();
 }
 
@@ -110,6 +122,7 @@ FileNameStream2 << _DATA_ << "/chunks/" << system_type << "_" << p << "_chunk_" 
 string FileName2=FileNameStream2.str();
 data.open(FileName2.c_str());
 //data.precision(15);
+
 // write array to file
 for (int t=0; t<steps; ++t) {
 	for (unsigned int u=0; u<(dim+2); ++u) {
