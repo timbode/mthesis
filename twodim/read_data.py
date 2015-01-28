@@ -61,7 +61,7 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 		string=file.strip().split('_')
 		p=string[1] # p is an artifact
 		rep=string[3][:-4]
-
+		
 		with open(SystemData["_DATA_"]+'/chunks/'+SystemData["system_type"]+'_'+p+'_chunk_'+rep+'.dat') as f:
 			for k, line in enumerate(f):
 				strang=line.strip().split()
@@ -72,8 +72,7 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 						E_tot.append(float(strang[2]) + float(strang[3]))
 						
 				# burn-in
-				#if rep == 0:
-					#if k < 5e5: continue # drop at least 5e5 steps
+				if int(rep) == 0: continue # watch the types: rep and p have type str		
 						
 				X.append(float(strang[0]))
 				Y.append(float(strang[1]))
@@ -104,4 +103,5 @@ ax2.plot(t_axis, E)
 plt.title('Droplet energy')
 plt.xlabel('t')
 plt.ylabel('E')
+fig.tight_layout()
 fig.savefig('data/plots/energies.png')

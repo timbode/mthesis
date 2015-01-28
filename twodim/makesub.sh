@@ -10,18 +10,18 @@ for ((p=0; p<$stats; ++p)); do
 	cd sysfolder_$p
 	
 	# create sub file here
-	echo "#$ -N TIMsJob-$p" >> job_$p.sub
+	echo "#$ -N tjob-$p" >> job_$p.sub
 	echo "#$ -M lappet@student.ethz.ch" >> job_$p.sub
 	echo "#$ -m e" >> job_$p.sub
 	echo "#$ -m a" >> job_$p.sub
 	#echo "#$ -m b" >> job_$p.sub
 	echo "#$ -m s" >> job_$p.sub
-	#echo "#$ -l vf=100M" >> job_$p.sub # include this for the IBM cluster
+	echo "#$ -l vf=300M" >> job_$p.sub # include this for the IBM cluster
 	echo "#$ -R y" >> job_$p.sub
 	#echo "#$ -pe omp 1" >> job_$p.sub
 	echo "./exec.sh" >> job_$p.sub
 	
 	# submit to queue
-	qsub job_$p.sub # qsubn for the IBM cluster
+	qsubn job_$p.sub # qsubn for the IBM cluster
 	cd ..
 done

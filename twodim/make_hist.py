@@ -64,7 +64,7 @@ ax=fig.add_axes((0.15, 0.2, size_x, size_y))
 plt.title('Location probability')
 mesh=ax.pcolormesh(xbins, ybins, all_counts)
 fig.colorbar(mesh)
-font_size=8
+font_size=10
 x_text=0.1
 if  SystemData["system_type"]=='particle':
 	fig.text(x_text, 0.07, 'Grid: '+'m='+str(SystemData["m"])+', '+'d='+str(SystemData["d"])+', '+'k='+str(SystemData["k"]), fontsize=font_size)
@@ -79,5 +79,4 @@ elif SystemData["system_type"]=='droplet':
 fig.text(x_text, 0.04, 'Verlet: '+str(SystemData["N_X"])+'x'+str(SystemData["N_Y"])+', '+'dt='+str(SystemData["dt"])+', '+'T='+str(SystemData["T"]), fontsize=font_size)
 plt.xlabel('x')
 plt.ylabel('y')
-#fig.tight_layout()
 fig.savefig(SystemData["_DATA_"]+'/plots/histogram2D.png')

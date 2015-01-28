@@ -36,7 +36,6 @@ class Verlet {
 		double dt; // recursion time
 
 		double* r0; double* r1; double* r2; // positions: three arrays required because Verlet method depends on the last two sets of positions
-
 		double* rdot; // velocities
 
 		// methods
