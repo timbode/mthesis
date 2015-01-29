@@ -36,6 +36,7 @@ class Droplet {
 		bool Hit(double*, double*);
 		bool Hit(unsigned int);
 		double* Collide(double, double*, double*);
+		void Crashed();
 		void Evolve(Verlet*, double*);
 };
 
@@ -167,6 +168,17 @@ double* Droplet::Collide(double m, double* r, double* v) {
 	return v;
 }
 
+// make report if droplet crashed somewhere
+void Droplet::Crashed() {
+	ofstream crash;
+	ostringstream FileNameStream;
+	FileNameStream << _DATA_ << "/crashed" << ".dat";
+	string FileName=FileNameStream.str();
+	crash.open(FileName.c_str());
+	crash << "Droplet has crashed!" << '\n';
+	crash.close();
+}
+
 // underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 void Droplet::Evolve(Verlet* Obj, double* datarr) {
 	for (unsigned int t=0; t<Steps; t++) {
@@ -178,6 +190,13 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		for (int i=0; i<3; ++i) {
 			r[i]=round(R[i]/L); // NOTE: factor of 1/L
 			}
+		
+		if (wall && stop_if_crashed) {
+			if (r[0] == (N_[0]-1)) {
+				cout << "Arrived!" << '\n';
+				break;
+			}
+		}
 
 		// exlcude collisions with outer grid points and make droplet stay in the box
 		double* n=new double[3];
@@ -199,11 +218,23 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 
 			// reflect
 			if ((s <= 0) && (this->Dot(n, V) > 0)) {
+				if (wall && stop_if_crashed) {
+					this->Crashed();
+					break;
+				}
 				this->Reflect(n); // second condition is to avoid that droplet gets stuck in the corner
 			}
 
-			// make sure particle cannot slip through at the boundary
-			if ((L*left_face_pos <= R[0]) && (R[0] <= L*right_face_pos)) this->Reflect(n_wall);
+			if (wall) {
+				// make sure particle cannot slip through at the boundary
+				if ((L*left_face_pos <= R[0]) && (R[0] <= L*right_face_pos)) {
+					if (stop_if_crashed) {
+						this->Crashed();
+						break;
+					}	
+					this->Reflect(n_wall);
+				}
+			}
 
 			// evolve droplet
 			for (unsigned int i=0; i<3; ++i) {
@@ -236,6 +267,10 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					// reflect
 					if ((s <= 0) && (this->Dot(n_slit, V) > 0)) {
 						cout << "Slit 1: " << R[1] << "   " << V[1] << '\n';
+						if (stop_if_crashed) {
+							this->Crashed();
+							break;
+						}	
 						this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
 					}
 					
@@ -265,6 +300,10 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					// reflect
 					if ((s <= 0) && (this->Dot(n_slit, V) > 0)) {
 						cout << "Slit 2: " << R[1] << "   " << V[1] << '\n';
+						if (stop_if_crashed) {
+							this->Crashed();
+							break;
+						}	
 						this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
 					}
 					
@@ -291,8 +330,11 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 
 					// if the droplet touches the boundary and would be reflected, the given run can be discarded
 					cout << "Crashed into the wall!"<< R[1]<< "   " << V[0] << "   " << R[0] << '\n';
-					//break;
-			
+					if (stop_if_crashed) {
+						this->Crashed();
+						break;
+					}	
+
 					this->Reflect(n_wall);
 
 					// evolve droplet

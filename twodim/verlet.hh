@@ -98,8 +98,6 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 				}
 			}
 		}
-
-
 	}
 
 	else {

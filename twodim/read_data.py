@@ -72,7 +72,7 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 						E_tot.append(float(strang[2]) + float(strang[3]))
 						
 				# burn-in
-				if int(rep) == 0: continue # watch the types: rep and p have type str		
+				#if int(rep) == 0: continue # watch the types: rep and p have type str		
 						
 				X.append(float(strang[0]))
 				Y.append(float(strang[1]))

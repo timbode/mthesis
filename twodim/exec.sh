@@ -13,7 +13,7 @@ icc -openmp -O3 -o main main.cc
 #g++ -Wall -fopenmp -O3 -o main main.cc
 
 #loop repetitions
-repeat=2
+repeat=1
 start=0
 time {
 for ((rep=$start; rep<$repeat; ++rep)); do

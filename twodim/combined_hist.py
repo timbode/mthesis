@@ -1,4 +1,4 @@
-# data analysis for 2D
+# combine all histograms from sysfolders
 import os, sys
 from numpy import *
 from math import *
@@ -11,6 +11,7 @@ matplotlib.rcParams["agg.path.chunksize"]=20000
 import system_data
 
 #---------------------------------------------------------------------------------
+# needs 'data/system.dat' and folder 'plots'
 #---------------------------------------------------------------------------------
 
 system_data.read()
@@ -35,19 +36,20 @@ elif SystemData["system_type"]=='droplet':
 
 # 2D histogram
 all_counts=zeros((bins_y, bins_x)) # note interchangement
-for root, _, files in os.walk(SystemData["_DATA_"]+'/hist'):
-	for file in files:
-		X=[]; Y=[];
-		string=file.strip().split('_')
-		p=string[2]; rep=string[4][:-4]
-		with open(SystemData["_DATA_"]+'/hist/hist_counts_'+p+'_chunk_'+rep+'.dat') as g:
-			counts=[]
-			for line in g:
-				strang=line.strip().split()
-				strang=[float(q) for q in strang]
-				counts.append(strang)
-			counts=transpose(array(counts))
-			all_counts+=counts
+for s in xrange(SystemData["stats"]):
+	for root, _, files in os.walk("sysfolder_"+str(s)+"/"+SystemData["_DATA_"]+'/hist'):
+		for file in files:
+			X=[]; Y=[];
+			string=file.strip().split('_')
+			p=string[2]; rep=string[4][:-4]
+			with open("sysfolder_"+str(s)+"/"+SystemData["_DATA_"]+'/hist/hist_counts_'+p+'_chunk_'+rep+'.dat') as g:
+				counts=[]
+				for line in g:
+					strang=line.strip().split()
+					strang=[float(q) for q in strang]
+					counts.append(strang)
+				counts=transpose(array(counts))
+				all_counts+=counts
 
 
 # meshgrid
@@ -61,8 +63,6 @@ else:
 	size_x=size*(SystemData["N_X"]-1)/(SystemData["N_Y"]-1)
 	size_y=size
 ax=fig.add_axes((0.15, 0.2, size_x, size_y))
-#ax.yaxis.set_label_position("right")
-#ax.yaxis.tick_right()
 plt.title('Location probability')
 mesh=ax.pcolormesh(xbins, ybins, all_counts)
 fig.colorbar(mesh)
@@ -79,7 +79,6 @@ elif SystemData["system_type"]=='droplet':
 	plt.xlim(0, (SystemData["N_X"]-1)/(SystemData["N_Y"]-1))
 	plt.ylim(0, 1)
 fig.text(x_text, 0.04, 'Verlet: '+str(SystemData["N_X"])+'x'+str(SystemData["N_Y"])+', '+'dt='+str(SystemData["dt"])+', '+'T='+str(SystemData["T"]), fontsize=font_size)
-plt.grid(True, color='white')
 plt.xlabel('x')
 plt.ylabel('y')
-fig.savefig(SystemData["_DATA_"]+'/plots/histogram2D.png')
+fig.savefig('plots/combined_histogram.png')

@@ -21,7 +21,7 @@ int repeat=atoi(argv[1]);
 int p=atoi(argv[2]);
 int rep=atoi(argv[3]);
 
-int steps=1e6;
+int steps=3e5;
 double dt=1e-4; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
@@ -33,13 +33,14 @@ GEN.seed(static_cast<unsigned int>(time(0)));
 
 // Define a uniform random number distribution which produces "double"
 // values between 0 and 1 (0 inclusive, 1 exclusive).
-boost::uniform_real<> UNI_DIST(0,1);
+boost::uniform_real<> UNI_DIST(-1,1);
 boost::variate_generator<base_generator_type&, boost::uniform_real<> > UNI(GEN, UNI_DIST);
 //-----------------------------------------------------------------------------------------------
 
 //double R_0 [3]={UNI(), UNI(), 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
-//double R_0 [3]={0.01, 0.5 + 1e-1*UNI(), 0.0};
-double R_0 [3]={0.5, 0.52, 0.0};
+//double R_0 [3]={0.01, 0.7 + 1e-1*UNI(), 0.0};
+double R_0 [3]={0.01, 0.5 + 3e-1*UNI(), 0.0};
+//double R_0 [3]={0.5, 0.52, 0.0};
 if (rep==0) {
 	cout << "========================================================" << '\n';
 	cout << "Start position: ";
@@ -52,10 +53,10 @@ if (rep==0) {
 	}
 	cout << "========================================================" << '\n';
 }
-//double V_0 [3]={0.1, 0.0, 0.0};
-double V_0 [3]={0, 0, 0};
+double V_0 [3]={0.1, 0.0, 0.0};
+//double V_0 [3]={0, 0, 0};
 
-unsigned int stats=1;
+unsigned int stats=3;
 
 ofstream system_data;
 ostringstream FileNameStream;
