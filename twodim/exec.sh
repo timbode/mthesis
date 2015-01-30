@@ -28,3 +28,7 @@ echo -e "========================================================\n"
 
 time /home/students/lappet/anaconda/bin/python read_data.py $folder
      /home/students/lappet/anaconda/bin/python make_hist.py $folder
+
+# on the IBM cluster
+#time /home/lappet/anaconda/bin/python read_data.py $folder
+#     /home/lappet/anaconda/bin/python make_hist.py $folder

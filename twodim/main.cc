@@ -21,7 +21,7 @@ int repeat=atoi(argv[1]);
 int p=atoi(argv[2]);
 int rep=atoi(argv[3]);
 
-int steps=3e5;
+int steps=2e5;
 double dt=1e-4; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
