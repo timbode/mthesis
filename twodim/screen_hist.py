@@ -20,6 +20,7 @@ SystemData=system_data.Dict
 Y=[]; V=[]
 counter=0
 for s in xrange(SystemData["stats"]):
+	if os.path.exists("sysfolder_"+str(s)+"/data/crashed.dat"): continue
 	if not os.path.exists("sysfolder_"+str(s)): continue
 	liste=[]
 	counter=counter+1
@@ -37,21 +38,21 @@ for s in xrange(SystemData["stats"]):
 
 #print Y
 
-bins=40
-bin_width=1.0/bins
-binning=[q for q in arange(0, 1.0 + bin_width, bin_width)]
+#bins=40
+#bin_width=SystemData["a_Y"]/bins
+#binning=[q for q in arange(0, SystemData["a_Y"] + bin_width, bin_width)]
 
 # histogram
 fig=plt.figure()
-plt.hist(Y, bins=binning, normed=False, label=str(counter)+" out of "+str(SystemData["stats"]))
+plt.hist(Y, bins=100, normed=False, orientation="horizontal", label=str(counter)+" out of "+str(SystemData["stats"]))
 plt.title('Location probability on screen')
 plt.legend()
-plt.xlabel('y')
-plt.ylabel('#')
+plt.xlabel('#')
+plt.ylabel('y')
 plt.grid(True)
-plt.xlim(0.0, 1.0)
-ax=plt.gca()
-ax.invert_xaxis()
-ax.yaxis.set_label_position("right")
-ax.yaxis.tick_right()
+plt.ylim(0.0, SystemData["a_Y"])
+#ax=plt.gca()
+#ax.invert_xaxis()
+#ax.yaxis.set_label_position("right")
+#ax.yaxis.tick_right()
 fig.savefig('plots/screen_hist.png')

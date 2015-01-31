@@ -53,8 +53,8 @@ if  SystemData["system_type"]=='particle':
 	ybins=arange(0, (SystemData["N_Y"]-1)+bin_size_y, bin_size_y)
 elif SystemData["system_type"]=='droplet':
 	# binning
-	xbins=linspace(0, (SystemData["N_X"]-1)/(SystemData["N_Y"]-1), bins_x+1) # use number of grid points to derive box size
-	ybins=linspace(0, 1, bins_y+1)
+	xbins=linspace(0, SystemData["a_X"], bins_x+1) # use number of grid points to derive box size
+	ybins=linspace(0, SystemData["a_Y"], bins_y+1)
 
 E=[]; E_grid=[]; E_tot=[];
 for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
