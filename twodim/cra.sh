@@ -10,5 +10,3 @@ for ((k=0; k<$stats; ++k)); do
 	fi
 done
 echo -e "$counter directories have been removed!"
-
-

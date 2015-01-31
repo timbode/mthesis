@@ -15,13 +15,19 @@
 using namespace std;
 using namespace Constants;
 
+unsigned long long rdtsc(){
+	unsigned int lo,hi;
+	__asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+	return ((unsigned long long)hi << 32) | lo;
+}
+
 int main(int argc, char* argv[]) {
 
 int repeat=atoi(argv[1]);
 int p=atoi(argv[2]);
 int rep=atoi(argv[3]);
 
-int steps=2e5;
+int steps=5e5;
 double dt=1e-4; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
@@ -29,7 +35,7 @@ double T=steps*dt;
 // create a random generator for each system
 base_generator_type GEN(42u);
 // set seed to system time (probably change this to something else)
-GEN.seed(static_cast<unsigned int>(time(0)));
+GEN.seed(static_cast<unsigned int>(rdtsc()));
 
 // Define a uniform random number distribution which produces "double"
 // values between 0 and 1 (0 inclusive, 1 exclusive).
@@ -39,7 +45,7 @@ boost::variate_generator<base_generator_type&, boost::uniform_real<> > UNI(GEN, 
 
 //double R_0 [3]={UNI(), UNI(), 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
 //double R_0 [3]={0.01, 0.7 + 1e-1*UNI(), 0.0};
-double R_0 [3]={0.01, 0.5 + 3e-1*UNI(), 0.0};
+double R_0 [3]={0.01, 0.5 + 2e-1*UNI(), 0.0};
 //double R_0 [3]={0.5, 0.52, 0.0};
 if (rep==0) {
 	cout << "========================================================" << '\n';
@@ -53,7 +59,7 @@ if (rep==0) {
 	}
 	cout << "========================================================" << '\n';
 }
-double V_0 [3]={0.1, 0.0, 0.0};
+double V_0 [3]={1.0, 0.0, 0.0};
 //double V_0 [3]={0, 0, 0};
 
 unsigned int stats=3;

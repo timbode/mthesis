@@ -43,6 +43,7 @@ class Verlet {
 		double* rdot; // velocities
 
 		// methods
+		unsigned long long rdtsc();
 		int Index(int, int, int, int);
 		double NearestNeighbours(int, int, int, int);
 		double PotentialEnergy(int, int, int, int, int);
@@ -63,8 +64,7 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 		// create a random generator for each system
 		base_generator_type generator(42u);
 		// set seed to system time (probably change this to something else)
-		generator.seed(static_cast<unsigned int>(time(0)));
-
+		generator.seed(static_cast<unsigned int>(this->rdtsc()));
 		// Define a uniform random number distribution which produces "double"
 		// values between 0 and 1 (0 inclusive, 1 exclusive).
 		boost::uniform_real<> uni_dist(-1,1);
@@ -92,7 +92,10 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 					for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
 						// do not excite if wall and if not slit
 						if (wall) {
-							if ((left_face_pos <= x) && (x <= right_face_pos) && !(((slit_1_lower < y) && (y < slit_1_upper)) || ((slit_2_lower < y) && (y < slit_2_upper)))) continue;
+							if ((left_face_pos <= x) && (x <= right_face_pos) && !(((slit_1_lower < y) && (y < slit_1_upper)) || ((slit_2_lower < y) && (y < slit_2_upper)))) {
+								//cout << x << "  " << y << "   " << z << "\n";
+								continue;
+							}
 						}
 
 						r0[this->Index(x, y, z, 0)]+=L*scale_x*uni();   r0[this->Index(x, y, z, 1)]+=L*scale_y*uni();   r0[this->Index(x, y, z, 2)]+=0;
@@ -145,6 +148,13 @@ Verlet::~Verlet() {
 	}
 
 	state_data.close();
+}
+// ------------------------------------------------------------------------------------------------
+// better random seed
+unsigned long long Verlet::rdtsc(){
+	unsigned int lo,hi;
+	__asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+	return ((unsigned long long)hi << 32) | lo;
 }
 
 // ------------------------------------------------------------------------------------------------

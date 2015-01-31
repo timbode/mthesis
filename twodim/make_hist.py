@@ -61,8 +61,6 @@ else:
 	size_x=size*(SystemData["N_X"]-1)/(SystemData["N_Y"]-1)
 	size_y=size
 ax=fig.add_axes((0.15, 0.2, size_x, size_y))
-#ax.yaxis.set_label_position("right")
-#ax.yaxis.tick_right()
 plt.title('Location probability')
 mesh=ax.pcolormesh(xbins, ybins, all_counts)
 fig.colorbar(mesh)

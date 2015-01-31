@@ -190,7 +190,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		for (int i=0; i<3; ++i) {
 			r[i]=round(R[i]/L); // NOTE: factor of 1/L
 			}
-		
+
 		if (wall && stop_if_crashed) {
 			if (r[0] == (N_[0]-1)) {
 				cout << "Arrived!" << '\n';
@@ -231,7 +231,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					if (stop_if_crashed) {
 						this->Crashed();
 						break;
-					}	
+					}
 					this->Reflect(n_wall);
 				}
 			}
@@ -259,21 +259,21 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		// simplify this part
 		if (wall) {
 			if ((L*left_face_pos < R[0]) && (R[0] < L*right_face_pos)) { // between the wall faces
-			
+
 				if ((r[1] == slit_1_lower) || (r[1] == slit_1_upper)) {
 					double s=min(R[1] - L*slit_1_lower, L*slit_1_upper - R[1]);
 					if (r[1] == slit_1_lower) n_slit[1]=-1;
-					
+
 					// reflect
 					if ((s <= 0) && (this->Dot(n_slit, V) > 0)) {
 						cout << "Slit 1: " << R[1] << "   " << V[1] << '\n';
 						if (stop_if_crashed) {
 							this->Crashed();
 							break;
-						}	
+						}
 						this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
 					}
-					
+
 					// evolve droplet
 					for (unsigned int i=0; i<3; ++i) {
 						R[i]=R[i] + dt*V[i];
@@ -292,21 +292,21 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 
 					continue;
 				}
-				
+
 				if ((r[1] == slit_2_lower) || (r[1] == slit_2_upper)) {
 					double s=min(R[1] - L*slit_2_lower, L*slit_2_upper - R[1]);
 					if (r[1] == slit_2_lower) n_slit[1]=-1;
-					
+
 					// reflect
 					if ((s <= 0) && (this->Dot(n_slit, V) > 0)) {
 						cout << "Slit 2: " << R[1] << "   " << V[1] << '\n';
 						if (stop_if_crashed) {
 							this->Crashed();
 							break;
-						}	
+						}
 						this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
 					}
-					
+
 					// evolve droplet
 					for (unsigned int i=0; i<3; ++i) {
 						R[i]=R[i] + dt*V[i];
@@ -325,7 +325,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 
 					continue;
 				}
-				
+
 				if (!(((L*slit_1_lower < R[1]) && (R[1] < L*slit_1_upper)) || ((L*slit_2_lower < R[1]) && (R[1] < L*slit_2_upper)))) { // if not inside one of the slits
 
 					// if the droplet touches the boundary and would be reflected, the given run can be discarded
@@ -333,7 +333,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					if (stop_if_crashed) {
 						this->Crashed();
 						break;
-					}	
+					}
 
 					this->Reflect(n_wall);
 

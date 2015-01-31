@@ -19,8 +19,10 @@ def Read(file):
 	with open(SystemData["_DATA_"]+'/chunks/'+SystemData["system_type"]+'_'+p+'_chunk_'+rep+'.dat') as f:
 		for k, line in enumerate(f):
 			strang=line.strip().split()
-			X.append(float(strang[0]))
-			Y.append(float(strang[1]))
+			x=float(strang[0])
+			y=float(strang[1])
+			X.append(x)
+			Y.append(y)
 			if float(p) == 0:
 				if k % 1000 == 0:
 					E.append(float(strang[2]))
@@ -61,7 +63,7 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 		string=file.strip().split('_')
 		p=string[1] # p is an artifact
 		rep=string[3][:-4]
-		
+
 		with open(SystemData["_DATA_"]+'/chunks/'+SystemData["system_type"]+'_'+p+'_chunk_'+rep+'.dat') as f:
 			for k, line in enumerate(f):
 				strang=line.strip().split()
@@ -70,12 +72,15 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 						E.append(float(strang[2]))
 						E_grid.append(float(strang[3]))
 						E_tot.append(float(strang[2]) + float(strang[3]))
-						
+
 				# burn-in
-				#if int(rep) == 0: continue # watch the types: rep and p have type str		
-						
-				X.append(float(strang[0]))
-				Y.append(float(strang[1]))
+				#if int(rep) == 0: continue # watch the types: rep and p have type str
+
+				x=float(strang[0])
+				y=float(strang[1])
+				if (x==0.0 and y==0.0): continue
+				X.append(x)
+				Y.append(y)
 
 			f.close()
 
