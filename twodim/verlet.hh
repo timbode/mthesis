@@ -92,9 +92,13 @@ Verlet::Verlet(int P, int Rep, double T_0, double dt_0) {
 					for (int z=min(1, N_[2]-1); z<max(1, N_[2]-1); ++z) {
 						// do not excite if wall and if not slit
 						if (wall) {
-							if ((left_face_pos <= x) && (x <= right_face_pos) && !(((slit_1_lower < y) && (y < slit_1_upper)) || ((slit_2_lower < y) && (y < slit_2_upper)))) {
-								//cout << x << "  " << y << "   " << z << "\n";
-								continue;
+							//if ((left_face_pos <= x) && (x <= right_face_pos) && !(((slit_1_lower < y) && (y < slit_1_upper)) || ((slit_2_lower < y) && (y < slit_2_upper)))) {
+							if ((left_face_pos <= x) && (x <= right_face_pos)) {
+								if (!((slit_1_lower < y) && (y < slit_1_upper))) {
+									if (!((slit_2_lower < y) && (y < slit_2_upper))) {
+										continue;
+									}
+								}
 							}
 						}
 
@@ -198,7 +202,13 @@ double Verlet::Step() {
 
 						// continue if wall and if not slit
 						if (wall) {
-							if ((left_face_pos <= x) && (x <= right_face_pos) && !(((slit_1_lower < y) && (y < slit_1_upper)) || ((slit_2_lower < y) && (y < slit_2_upper)))) continue;
+							if ((left_face_pos <= x) && (x <= right_face_pos)) {
+								if (!((slit_1_lower < y) && (y < slit_1_upper))) {
+									if (!((slit_2_lower < y) && (y < slit_2_upper))) {
+										continue;
+									}
+								}
+							}
 						}
 
 						int index=this->Index(x, y, z, alpha);

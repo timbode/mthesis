@@ -37,6 +37,7 @@ class Droplet {
 		bool Hit(unsigned int);
 		double* Collide(double, double*, double*);
 		void Crashed();
+		void Touched();
 		void Evolve(Verlet*, double*);
 };
 
@@ -179,6 +180,17 @@ void Droplet::Crashed() {
 	crash.close();
 }
 
+// make report if droplet touched the wall inside one of the slits
+void Droplet::Touched() {
+	ofstream touch;
+	ostringstream FileNameStream;
+	FileNameStream << _DATA_ << "/touched" << ".dat";
+	string FileName=FileNameStream.str();
+	touch.open(FileName.c_str());
+	touch << "Droplet has touched!" << '\n';
+	touch.close();
+}
+
 // underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 void Droplet::Evolve(Verlet* Obj, double* datarr) {
 	for (unsigned int t=0; t<Steps; t++) {
@@ -268,8 +280,8 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					if ((s <= 0) && (this->Dot(n_slit, V) > 0)) {
 						cout << "Slit 1: " << R[1] << "   " << V[1] << '\n';
 						if (stop_if_crashed) {
-							this->Crashed();
-							break;
+							this->Touched();
+							//break;
 						}
 						this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
 					}
@@ -301,8 +313,8 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					if ((s <= 0) && (this->Dot(n_slit, V) > 0)) {
 						cout << "Slit 2: " << R[1] << "   " << V[1] << '\n';
 						if (stop_if_crashed) {
-							this->Crashed();
-							break;
+							this->Touched();
+							//break;
 						}
 						this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
 					}
@@ -329,7 +341,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				if (!(((L*slit_1_lower < R[1]) && (R[1] < L*slit_1_upper)) || ((L*slit_2_lower < R[1]) && (R[1] < L*slit_2_upper)))) { // if not inside one of the slits
 
 					// if the droplet touches the boundary and would be reflected, the given run can be discarded
-					cout << "Crashed into the wall!"<< R[1]<< "   " << V[0] << "   " << R[0] << '\n';
+					cout << "Crashed into the wall! "<< R[1]<< "   " << V[0] << "   " << R[0] << '\n';
 					if (stop_if_crashed) {
 						this->Crashed();
 						break;

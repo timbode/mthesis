@@ -37,6 +37,8 @@ elif SystemData["system_type"]=='droplet':
 # 2D histogram
 all_counts=zeros((bins_y, bins_x)) # note interchangement
 for s in xrange(SystemData["stats"]):
+	#if os.path.exists("sysfolder_"+str(s)+"/data/crashed.dat"): continue
+	#if os.path.exists("sysfolder_"+str(s)+"/data/touched.dat"): continue
 	if not os.path.exists("sysfolder_"+str(s)): continue
 	for root, _, files in os.walk("sysfolder_"+str(s)+"/"+SystemData["_DATA_"]+'/hist'):
 		for file in files:
@@ -83,4 +85,5 @@ fig.text(x_text, 0.04, 'Verlet: '+str(SystemData["N_X"])+'x'+str(SystemData["N_Y
 plt.grid(True, color='white')
 plt.xlabel('x')
 plt.ylabel('y')
+#plt.yticks(arange(0, SystemData["a_Y"]+0.1, 0.1))
 fig.savefig('plots/combined_histogram.png')

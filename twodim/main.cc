@@ -45,7 +45,7 @@ boost::variate_generator<base_generator_type&, boost::uniform_real<> > UNI(GEN, 
 
 //double R_0 [3]={UNI(), UNI(), 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
 //double R_0 [3]={0.01, 0.7 + 1e-1*UNI(), 0.0};
-double R_0 [3]={0.01, 1.0 + 2e-1*UNI(), 0.0};
+double R_0 [3]={0.01, 1.5 + 2e-1*UNI(), 0.0};
 //double R_0 [3]={0.5, 0.52, 0.0};
 if (rep==0) {
 	cout << "========================================================" << '\n';
@@ -62,7 +62,7 @@ if (rep==0) {
 double V_0 [3]={1.0, 0.0, 0.0};
 //double V_0 [3]={0, 0, 0};
 
-unsigned int stats=500;
+unsigned int stats=3;
 
 ofstream system_data;
 ostringstream FileNameStream;
