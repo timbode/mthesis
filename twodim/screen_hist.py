@@ -19,18 +19,21 @@ SystemData=system_data.Dict
 
 Y=[]; V=[]
 counter=0
+below_sym_axis=0
 for s in xrange(SystemData["stats"]):
 	if os.path.exists("sysfolder_"+str(s)+"/data/crashed.dat"): continue
-	#if os.path.exists("sysfolder_"+str(s)+"/data/touched.dat"): continue
+	if os.path.exists("sysfolder_"+str(s)+"/data/touched.dat"): continue
 	if not os.path.exists("sysfolder_"+str(s)): continue
 	liste=[]
-	counter=counter+1
+	counter+=1
 	with open("sysfolder_"+str(s)+"/"+SystemData["_DATA_"]+'/init/'+SystemData["system_type"]+'_'+str(0)+'_init_chunk_'+str(1)+'.dat') as f: # p=0, rep=1
 		for line in f:
 			strang=line.strip().split()
 			liste.append(strang)
-
-	Y.append(float(liste[1][0])) # type must be changed to float - keep forgetting that...
+			
+	y=float(liste[1][0])
+	if y < 1.5: below_sym_axis+=1
+	Y.append(y) # type must be changed to float - keep forgetting that...
 
 	v=[]
 	v.append(float(liste[0][1]))
@@ -40,6 +43,8 @@ for s in xrange(SystemData["stats"]):
 	v[0]=v[0]/norm; v[1]=v[1]/norm;
 
 	V.append(v)
+
+print below_sym_axis
 
 #alpha=[(q[1]/abs(q[1]))*acos(q[0]) for q in V]
 alpha=[q[1] for q in V]

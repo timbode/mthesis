@@ -1,6 +1,6 @@
 # group jobs
 
-group_size=10
+group_size=2
 
 for ((p=$1*$group_size; p<$1*$group_size+$group_size; ++p)); do
     mkdir -vp sysfolder_$p

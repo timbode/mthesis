@@ -152,6 +152,22 @@ Verlet::~Verlet() {
 	}
 
 	state_data.close();
+	
+	ofstream burn_in;
+	ostringstream FileNameStream2;
+	FileNameStream2 << "burn_off" << ".dat";
+	string FileName2=FileNameStream2.str();
+	burn_in.open(FileName2.c_str());
+	burn_in.precision(15); // precision in writing must be high - otherwise there appear discontinuities in the energy when repeating (division by small dt?)
+	// write grid positions to file
+	for (unsigned int i=0; i<Max; ++i) {
+		//burn_in << r0[i] << '\t';
+		//burn_in << r1[i] << '\t';
+		//burn_in << r2[i] << '\t';
+		burn_in << rdot[i] << '\n';
+	}
+
+	burn_in.close();
 }
 // ------------------------------------------------------------------------------------------------
 // better random seed
@@ -229,6 +245,22 @@ void Verlet::Burn_in() {
 	for (int t=0; t<1e5; t++) {
 		this->Step();
 	}
+	
+	ofstream burn_in;
+	ostringstream FileNameStream;
+	FileNameStream << "burn_in" << ".dat";
+	string FileName=FileNameStream.str();
+	burn_in.open(FileName.c_str());
+	burn_in.precision(15); // precision in writing must be high - otherwise there appear discontinuities in the energy when repeating (division by small dt?)
+	// write grid positions to file
+	for (unsigned int i=0; i<Max; ++i) {
+		//burn_in << r0[i] << '\t';
+		//burn_in << r1[i] << '\t';
+		//burn_in << r2[i] << '\t';
+		burn_in << rdot[i] << '\n';
+	}
+
+	burn_in.close();
 }
 
 // ------------------------------------------------------------------------------------------------

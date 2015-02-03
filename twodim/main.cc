@@ -27,7 +27,7 @@ int repeat=atoi(argv[1]);
 int p=atoi(argv[2]);
 int rep=atoi(argv[3]);
 
-int steps=5e5;
+int steps=1e5;
 double dt=1e-4; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
@@ -45,7 +45,12 @@ boost::variate_generator<base_generator_type&, boost::uniform_real<> > UNI(GEN, 
 
 //double R_0 [3]={UNI(), UNI(), 0.0}; // watch out: the vectors here MUST NOT be "perfect" (because of the cross product)
 //double R_0 [3]={0.01, 0.7 + 1e-1*UNI(), 0.0};
-double R_0 [3]={0.01, 1.5 + 2e-1*UNI(), 0.0};
+double y_start=L*slit_2_upper - (L*slit_width)*0.5 + L*0.5*slit_width*UNI();
+//double y_start=a_Y/2 + (L*slit_shift + L*slit_width)*UNI();
+//while ((L*slit_1_upper < y_start) && (y_start < L*slit_2_lower)) {
+//	y_start=a_Y/2 + (L*slit_shift + L*slit_width)*UNI();
+//}
+double R_0 [3]={0.01, y_start, 0.0};
 //double R_0 [3]={0.5, 0.52, 0.0};
 if (rep==0) {
 	cout << "========================================================" << '\n';
@@ -59,10 +64,10 @@ if (rep==0) {
 	}
 	cout << "========================================================" << '\n';
 }
-double V_0 [3]={1.0, 0.0, 0.0};
+double V_0 [3]={0.1, 0.0, 0.0};
 //double V_0 [3]={0, 0, 0};
 
-unsigned int stats=3;
+unsigned int stats=1;
 
 ofstream system_data;
 ostringstream FileNameStream;

@@ -37,8 +37,8 @@ elif SystemData["system_type"]=='droplet':
 # 2D histogram
 all_counts=zeros((bins_y, bins_x)) # note interchangement
 for s in xrange(SystemData["stats"]):
-	#if os.path.exists("sysfolder_"+str(s)+"/data/crashed.dat"): continue
-	#if os.path.exists("sysfolder_"+str(s)+"/data/touched.dat"): continue
+	if os.path.exists("sysfolder_"+str(s)+"/data/crashed.dat"): continue
+	if os.path.exists("sysfolder_"+str(s)+"/data/touched.dat"): continue
 	if not os.path.exists("sysfolder_"+str(s)): continue
 	for root, _, files in os.walk("sysfolder_"+str(s)+"/"+SystemData["_DATA_"]+'/hist'):
 		for file in files:

@@ -67,6 +67,9 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 		with open(SystemData["_DATA_"]+'/chunks/'+SystemData["system_type"]+'_'+p+'_chunk_'+rep+'.dat') as f:
 			for k, line in enumerate(f):
 				strang=line.strip().split()
+				x=float(strang[0])
+				y=float(strang[1])
+				if (x==0.0 and y==0.0): continue
 				if int(p) == 0:
 					if k % 1000 == 0:
 						E.append(float(strang[2]))
@@ -76,9 +79,6 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 				# burn-in
 				#if int(rep) == 0: continue # watch the types: rep and p have type str
 
-				x=float(strang[0])
-				y=float(strang[1])
-				if (x==0.0 and y==0.0): continue
 				X.append(x)
 				Y.append(y)
 

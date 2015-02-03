@@ -15,5 +15,6 @@ for ((p=0; p<$stats; ++p)); do
     echo "./groupjobs.sh $p" >> job_$p.sub
 
     # submit to queue
-    qsubn job_$p.sub # qsubn for the IBM cluster
+    qsubt job_$p.sub # qsubn for the IBM cluster
+    #./groupjobs.sh $p
 done
