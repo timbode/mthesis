@@ -152,7 +152,7 @@ Verlet::~Verlet() {
 	}
 
 	state_data.close();
-	
+
 	ofstream burn_in;
 	ostringstream FileNameStream2;
 	FileNameStream2 << "burn_off" << ".dat";
@@ -228,7 +228,12 @@ double Verlet::Step() {
 						}
 
 						int index=this->Index(x, y, z, alpha);
+
+						//if ((x==40) && (y==140)) cout<< alpha<<"   " << index << '\n';
+
 						r2[index]=2*r1[index] - r0[index] - ((k/m)*dt*dt)*(2*dim*r1[index] - NearestNeighbours(x, y, z, alpha)); // ((k/m)*dt*dt) must be << 1
+						// damping
+						//r2[index]+=2*sqrt(k/m)*damp*dt*(r1[index] - r0[index]);
 						rdot[index]=(r2[index] - r1[index])/dt; // (r2[index] - r0[index])/(2*dt)
 
 						// energy
@@ -238,14 +243,14 @@ double Verlet::Step() {
 			}
 		}
 		r0=r1; r1=r2; r2=r0;
-		return E;
+		return E;//100*rdot[2090];//[8180];
 }
 
 void Verlet::Burn_in() {
 	for (int t=0; t<1e5; t++) {
 		this->Step();
 	}
-	
+
 	ofstream burn_in;
 	ostringstream FileNameStream;
 	FileNameStream << "burn_in" << ".dat";

@@ -162,10 +162,17 @@ double* Droplet::Collide(double m, double* r, double* v) {
 	double v_Dot_t=this->Dot(v, t);
 
 	for (int i=0; i<3; ++i) {
+		//cout << v[i] << '\n';
 		V[i]=V_Dot_t*t[i] + (c_factor - V_Dot_p)*p[i];
 		v[i]=v_Dot_t*t[i] + (c_factor - v_Dot_p)*p[i];
 	}
-
+/*
+	double v_length=0.1;
+	V=this->Normed(V);
+	//cout << V[0] << '\t';
+	for (int i=0; i<3; ++i) V[i]=v_length*V[i];
+	//cout << V[0] << '\n';
+*/
 	return v;
 }
 
@@ -382,6 +389,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 
 		// check if it is time
 		if (this->Hit(t)) {
+
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
 
@@ -391,6 +399,13 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				Obj->rdot[index]=rdot_nearest[i];
 				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index];
 			}
+/*
+			// make an excitation
+			for (int i=0; i<2; ++i) {
+				int index=Obj->Index(r[0], r[1], r[2], i);
+				Obj->r1[index]+=(-1)*L*1.0;
+			}
+			*/
 		}
 
 		// evolve droplet
