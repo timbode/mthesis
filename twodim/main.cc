@@ -50,7 +50,7 @@ double y_start=L*slit_2_upper - (L*slit_width)*0.5 + L*0.5*slit_width*UNI();
 //while ((L*slit_1_upper < y_start) && (y_start < L*slit_2_lower)) {
 //	y_start=a_Y/2 + (L*slit_shift + L*slit_width)*UNI();
 //}
-double R_0 [3]={0.1, 1.211, 0.0};
+double R_0 [3]={0.1, y_start, 0.0};
 //double R_0 [3]={0.5, 0.52, 0.0};
 if (rep==0) {
 	cout << "========================================================" << '\n';
@@ -67,7 +67,7 @@ if (rep==0) {
 double V_0 [3]={0.5, 0.0, 0.0};
 //double V_0 [3]={0, 0, 0};
 
-unsigned int stats=1;
+unsigned int stats=30;
 
 ofstream system_data;
 ostringstream FileNameStream;
