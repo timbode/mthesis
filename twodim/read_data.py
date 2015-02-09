@@ -70,6 +70,10 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 				x=float(strang[0])
 				y=float(strang[1])
 				if (x==0.0 and y==0.0): continue
+				
+				# burn-in
+				#if int(rep) == 0: continue # watch the types: rep and p have type str
+				
 				if int(p) == 0:
 					if k % 100 == 0:
 						E.append(float(strang[2]))
@@ -107,7 +111,7 @@ plt.ylabel('E')
 # droplet energy
 ax2=plt.subplot(212)
 ax2.plot(t_axis, E)
-plt.title('Droplet energy')
+plt.title(str.capitalize(SystemData["system_type"])+' '+'energy')
 plt.xlabel('t')
 plt.ylabel('E')
 fig.tight_layout()

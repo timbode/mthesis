@@ -229,7 +229,7 @@ double Verlet::Step() {
 
 						int index=this->Index(x, y, z, alpha);
 
-						//if ((x==40) && (y==140)) cout<< alpha<<"   " << index << '\n';
+						//if ((x==25) && (y==100)) cout<< alpha<<"   " << index << '\n';
 
 						r2[index]=2*r1[index] - r0[index] - ((k/m)*dt*dt)*(2*dim*r1[index] - NearestNeighbours(x, y, z, alpha)); // ((k/m)*dt*dt) must be << 1
 						// damping

@@ -389,6 +389,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 
 		// check if it is time
 		if (this->Hit(t)) {
+			//cout << "Hit!" << "\n";
 
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
@@ -399,13 +400,18 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				Obj->rdot[index]=rdot_nearest[i];
 				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index];
 			}
-/*
+
+			/*
 			// make an excitation
+			Obj->r1[18210]+=L*1.0;
+			Obj->r1[108811]+=L*1.0;
+
 			for (int i=0; i<2; ++i) {
 				int index=Obj->Index(r[0], r[1], r[2], i);
-				Obj->r1[index]+=(-1)*L*1.0;
+				cout << index << "\n";
+				Obj->r1[index]+=L*1.0;
 			}
-			*/
+*/
 		}
 
 		// evolve droplet

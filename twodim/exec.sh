@@ -14,7 +14,7 @@ icc -openmp -O3 -o main main.cc
 
 #loop repetitions
 repeat=1
-start=0
+ start=0
 time {
 for ((rep=$start; rep<$repeat; ++rep)); do
           ./main $repeat 0 $rep;

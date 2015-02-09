@@ -2,7 +2,6 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 namespace Constants {
-
 // ------------------------------------------------------------------------------------------------
 // path to data folder - [19:-2] gives folder in exec.sh
 const char _DATA_[]="data";
@@ -30,13 +29,13 @@ const bool excitation=0;
 // "double-slit stuff"
 const bool wall=1;
 const bool stop_if_crashed=1;
-const int half_width=10;
+const int half_width=5;
 const int  left_face_pos=(N_[0]-1)/3 - half_width; // on the x-axis
 const int right_face_pos=(N_[0]-1)/3 + half_width;
 
 // slit 1 BELOW the middle line (y==const) and slit 2 ABOVE
-const int slit_shift=10;
-const int slit_width=20;
+const int slit_shift=3;
+const int slit_width=8;
 const int slit_1_lower=(N_[1]-1)/2 - slit_shift - slit_width; // on the y-axis
 const int slit_1_upper=(N_[1]-1)/2 - slit_shift; // note asymmetric definition
 
@@ -50,6 +49,5 @@ const double M=1000.0;//N_[0]*N_[0]-4*N_[0]+4; // particle mass
 const double D=0.4; // particle diameter
 const double f=70;//6; // "bouncing" frequency of particle
 // ------------------------------------------------------------------------------------------------
-
 }
 #endif

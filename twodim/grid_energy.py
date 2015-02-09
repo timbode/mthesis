@@ -46,9 +46,9 @@ for s in xrange(SystemData["stats"]):
 				e=0;
 				for alpha in xrange(2):
 					#e+=0.5*rdot[Index(x, y, z, alpha)]*rdot[Index(x, y, z, alpha)]
-					if alpha==1: e+=0.5*rdot[Index(x, y, z, alpha)]#*rdot[Index(x, y, z, alpha)]
+					if alpha==1: e+=rdot[Index(x, y, z, alpha)]#*rdot[Index(x, y, z, alpha)]
 				E[y][x]+=e
-				
+
 	xbins=arange(0, SystemData["N_X"]) # use number of grid points to derive box size
 	ybins=arange(0, SystemData["N_Y"])
 	X, Y=meshgrid(xbins, ybins)
@@ -60,4 +60,5 @@ for s in xrange(SystemData["stats"]):
 	plt.grid(True, color='white')
 	plt.xlabel('x')
 	plt.ylabel('y')
+	fig.tight_layout()
 	fig.savefig("sysfolder_"+str(s)+"/"+'data/plots/grid_energy.png')
