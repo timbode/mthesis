@@ -75,7 +75,7 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 				#if int(rep) == 0: continue # watch the types: rep and p have type str
 				
 				if int(p) == 0:
-					if k % 100 == 0:
+					if k % 1 == 0:
 						E.append(float(strang[2]))
 						E_grid.append(float(strang[3]))
 						E_tot.append(float(strang[2]) + float(strang[3]))
@@ -102,7 +102,8 @@ t_axis=arange(0, len(E))
 
 ax1=plt.subplot(211)
 ax1.plot(t_axis, E_grid)
-ax1.plot(t_axis, E_tot)
+#ax1.plot(t_axis, E_tot)
+plt.axhline(y=0)
 plt.title('Grid energy')
 #plt.xticks(arange(0,50,1))
 plt.xlabel('t')

@@ -387,10 +387,20 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 			rdot_nearest[i]=Obj->rdot[index];
 		}
 
+		double temp=0;
+		
+		if ((t%800)==0) {
+			//cout << "Excited! " << '\n';
+			// make an excitation
+			Obj->r1[52330]+=L*1.0; //10150
+			//Obj->r1[50551]+=L*1.0;
+		}
+
 		// check if it is time
 		if (this->Hit(t)) {
 			//cout << "Hit!" << "\n";
-
+			temp=0.2;
+///*
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
 
@@ -400,15 +410,13 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				Obj->rdot[index]=rdot_nearest[i];
 				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index];
 			}
+//*/
+			
 
-			/*
-			// make an excitation
-			Obj->r1[18210]+=L*1.0;
-			Obj->r1[108811]+=L*1.0;
-
+/*
 			for (int i=0; i<2; ++i) {
 				int index=Obj->Index(r[0], r[1], r[2], i);
-				cout << index << "\n";
+				//cout << index << "\n";
 				Obj->r1[index]+=L*1.0;
 			}
 */
@@ -416,7 +424,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 
 		// evolve droplet
 		for (unsigned int i=0; i<3; ++i) {
-			R[i]=R[i] + dt*V[i];
+			if (t > 30e3) R[i]=R[i] + dt*V[i];
 			E+=0.5*M*V[i]*V[i]; // energy
 
 			if (i<dim) {
@@ -428,7 +436,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 
 		// evolve grid
 		E_grid=Obj->Step();
-		*datarr=E_grid; ++datarr;
+		*datarr=E_grid+temp; ++datarr;
 	}
 }
 // ------------------------------------------------------------------------------------------------

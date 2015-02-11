@@ -46,7 +46,14 @@ for s in xrange(SystemData["stats"]):
 				e=0;
 				for alpha in xrange(2):
 					#e+=0.5*rdot[Index(x, y, z, alpha)]*rdot[Index(x, y, z, alpha)]
-					if alpha==1: e+=rdot[Index(x, y, z, alpha)]#*rdot[Index(x, y, z, alpha)]
+					if alpha==0:
+						temp=rdot[Index(x, y, z, alpha)]#*rdot[Index(x, y, z, alpha)]
+						if temp==0: continue
+						if abs(temp) > 0.001: continue
+						#if temp > 0: temp=temp+exp(abs(temp))
+						#else: temp=temp-exp(abs(temp))
+					
+						e+=temp
 				E[y][x]+=e
 
 	xbins=arange(0, SystemData["N_X"]) # use number of grid points to derive box size
