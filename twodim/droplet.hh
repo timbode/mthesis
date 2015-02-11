@@ -38,6 +38,7 @@ class Droplet {
 		double* Collide(double, double*, double*);
 		void Crashed();
 		void Touched();
+		double* Update(Verlet*, double*, double, double);
 		void Evolve(Verlet*, double*);
 };
 
@@ -198,11 +199,31 @@ void Droplet::Touched() {
 	touch.close();
 }
 
+double* Droplet::Update(Verlet* obj, double* dat, double e, double e_grid) {
+	// evolve droplet
+	for (unsigned int i=0; i<3; ++i) {
+		R[i]=R[i] + dt*V[i];
+		e+=0.5*M*V[i]*V[i]; // energy
+
+		if (i<dim) {
+			*dat=R[i];
+			++dat;
+		}
+	}
+	*dat=e; ++dat;
+
+	// evolve grid
+	e_grid=obj->Step();
+	*dat=e_grid; ++dat;
+	
+	return dat;
+}
+
 // underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 void Droplet::Evolve(Verlet* Obj, double* datarr) {
 	for (unsigned int t=0; t<Steps; t++) {
 		double E=0; // droplet energy --- should be initialized to 0: icc handles it anyway, g++ does not ...
-		double E_grid; // grid energy
+		double E_grid=0; // grid energy
 
 		// determine grid point nearest to droplet position
 		int* r=new int[3];
@@ -255,22 +276,8 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				}
 			}
 
-			// evolve droplet
-			for (unsigned int i=0; i<3; ++i) {
-				R[i]=R[i] + dt*V[i];
-				E+=0.5*M*V[i]*V[i]; // energy
-
-				if (i<dim) {
-					*datarr=R[i];
-					++datarr;
-				}
-			}
-			*datarr=E; ++datarr;
-
-			// evolve grid
-			E_grid=Obj->Step();
-			*datarr=E_grid; ++datarr;
-
+			// evolve
+			datarr=this->Update(Obj, datarr, E, E_grid);
 			continue;
 		}
 
@@ -293,22 +300,8 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 						this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
 					}
 
-					// evolve droplet
-					for (unsigned int i=0; i<3; ++i) {
-						R[i]=R[i] + dt*V[i];
-						E+=0.5*M*V[i]*V[i]; // energy
-
-						if (i<dim) {
-							*datarr=R[i];
-							++datarr;
-						}
-					}
-					*datarr=E; ++datarr;
-
-					// evolve grid
-					E_grid=Obj->Step();
-					*datarr=E_grid; ++datarr;
-
+					// evolve
+					datarr=this->Update(Obj, datarr, E, E_grid);
 					continue;
 				}
 
@@ -326,22 +319,8 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 						this->Reflect(n_slit); // second condition is to avoid that droplet gets stuck in the corner
 					}
 
-					// evolve droplet
-					for (unsigned int i=0; i<3; ++i) {
-						R[i]=R[i] + dt*V[i];
-						E+=0.5*M*V[i]*V[i]; // energy
-
-						if (i<dim) {
-							*datarr=R[i];
-							++datarr;
-						}
-					}
-					*datarr=E; ++datarr;
-
-					// evolve grid
-					E_grid=Obj->Step();
-					*datarr=E_grid; ++datarr;
-
+					// evolve
+					datarr=this->Update(Obj, datarr, E, E_grid);
 					continue;
 				}
 
@@ -356,22 +335,8 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 
 					this->Reflect(n_wall);
 
-					// evolve droplet
-					for (unsigned int i=0; i<3; ++i) {
-						R[i]=R[i] + dt*V[i];
-						E+=0.5*M*V[i]*V[i]; // energy
-
-						if (i<dim) {
-							*datarr=R[i];
-							++datarr;
-						}
-					}
-					*datarr=E; ++datarr;
-
-					// evolve grid
-					E_grid=Obj->Step();
-					*datarr=E_grid; ++datarr;
-
+					// evolve
+					datarr=this->Update(Obj, datarr, E, E_grid);
 					continue;
 				}
 			}
@@ -388,18 +353,18 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		}
 
 		double temp=0;
-		
+/*	
 		if ((t%800)==0) {
 			//cout << "Excited! " << '\n';
 			// make an excitation
 			Obj->r1[52330]+=L*1.0; //10150
 			//Obj->r1[50551]+=L*1.0;
 		}
-
+*/
 		// check if it is time
 		if (this->Hit(t)) {
 			//cout << "Hit!" << "\n";
-			temp=0.2;
+			//temp=0.2;
 ///*
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
@@ -422,21 +387,8 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 */
 		}
 
-		// evolve droplet
-		for (unsigned int i=0; i<3; ++i) {
-			if (t > 30e3) R[i]=R[i] + dt*V[i];
-			E+=0.5*M*V[i]*V[i]; // energy
-
-			if (i<dim) {
-				*datarr=R[i];
-				++datarr;
-			}
-		}
-		*datarr=E; ++datarr;
-
-		// evolve grid
-		E_grid=Obj->Step();
-		*datarr=E_grid+temp; ++datarr;
+		// evolve
+		datarr=this->Update(Obj, datarr, E, E_grid);
 	}
 }
 // ------------------------------------------------------------------------------------------------
