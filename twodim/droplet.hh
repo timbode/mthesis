@@ -38,7 +38,7 @@ class Droplet {
 		double* Collide(double, double*, double*);
 		void Crashed();
 		void Touched();
-		double* Update(Verlet*, double*, double, double);
+		double* Update(Verlet*, double*, double, double, double*);
 		void Evolve(Verlet*, double*);
 };
 
@@ -199,11 +199,11 @@ void Droplet::Touched() {
 	touch.close();
 }
 
-double* Droplet::Update(Verlet* obj, double* dat, double e, double e_grid) {
+double* Droplet::Update(Verlet* obj, double* dat, double e, double e_grid, double* F) {
 	// evolve droplet
 	for (unsigned int i=0; i<3; ++i) {
-		R[i]=R[i] + dt*V[i];
-		e+=0.5*M*V[i]*V[i]; // energy
+		R[i]=R[i] + dt*V[i] + dt*dt*F[i]/M;
+		e+=0.5*M*V[i]*V[i]; // energy --- and the potential energy??
 
 		if (i<dim) {
 			*dat=R[i];
@@ -224,6 +224,10 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 	for (unsigned int t=0; t<Steps; t++) {
 		double E=0; // droplet energy --- should be initialized to 0: icc handles it anyway, g++ does not ...
 		double E_grid=0; // grid energy
+		
+		// force
+		double* TheForce=new double[3];
+		for (int i=0; i<3; ++i) TheForce[i]=0;
 
 		// determine grid point nearest to droplet position
 		int* r=new int[3];
@@ -277,7 +281,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 			}
 
 			// evolve
-			datarr=this->Update(Obj, datarr, E, E_grid);
+			datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
 			continue;
 		}
 
@@ -301,7 +305,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					}
 
 					// evolve
-					datarr=this->Update(Obj, datarr, E, E_grid);
+					datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
 					continue;
 				}
 
@@ -320,7 +324,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					}
 
 					// evolve
-					datarr=this->Update(Obj, datarr, E, E_grid);
+					datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
 					continue;
 				}
 
@@ -336,7 +340,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					this->Reflect(n_wall);
 
 					// evolve
-					datarr=this->Update(Obj, datarr, E, E_grid);
+					datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
 					continue;
 				}
 			}
@@ -388,7 +392,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		}
 
 		// evolve
-		datarr=this->Update(Obj, datarr, E, E_grid);
+		datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
 	}
 }
 // ------------------------------------------------------------------------------------------------
