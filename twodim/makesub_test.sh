@@ -1,6 +1,6 @@
 # test
 # /home/students/lappet/cluster
-stats=1
+stats=10
 
 mkdir -vp data plots
 

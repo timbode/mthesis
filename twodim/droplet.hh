@@ -238,16 +238,19 @@ double* Droplet::TheForce(Verlet* obj, int* rr, double* FF) {
 			//cout << rr[0]+dx << "   " << rr[1]+dy << '\n';
 			
 			double* r_hat=new double[3]; // connecting vector
+			double* vv=new double[3]; // velocity
 			for (int i=0; i<3; ++i) {
 				int index=obj->Index(rr[0]+dx, rr[1]+dy, rr[2], i);
 				r_hat[i]=R[i] - obj->r1[index]; // these vectors point *from* the respective grid point *to* the droplet
+				vv[i]=obj->rdot[index];
 			}
 			double norm=sqrt(this->Dot(r_hat, r_hat));
+			double v_squared=this->Dot(vv, vv);
 			r_hat=this->Normed(r_hat);
 			
 			for (int i=0; i<3; ++i) {
-				FF[i]+=F(1e-2, norm)*r_hat[i];
-				//cout << FF[i] << '\t';
+				FF[i]+=F(1e0*v_squared, norm)*r_hat[i];
+				//cout << v_squared << '\t';
 			} //cout << '\n';
 		}
 	}
@@ -274,7 +277,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		if (t > 30e3) force=this->TheForce(Obj, r, force);
 		// ------------------------------------------------------------------------------------------------
 		
-		if (t == 30e3) V[0]=2.0;
+		if (t == 30e3) V[0]=0.1;
 		
 		// ------------------------------------------------------------------------------------------------
 		if (wall && stop_if_crashed) {

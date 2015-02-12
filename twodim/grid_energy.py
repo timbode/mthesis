@@ -49,7 +49,7 @@ for s in xrange(SystemData["stats"]):
 					if alpha==0:
 						temp=rdot[Index(x, y, z, alpha)]#*rdot[Index(x, y, z, alpha)]
 						if temp==0: continue
-						if abs(temp) > 0.001: continue
+						if abs(temp) > 0.01: continue
 						#if temp > 0: temp=temp+exp(abs(temp))
 						#else: temp=temp-exp(abs(temp))
 					

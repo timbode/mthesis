@@ -14,6 +14,8 @@
 using namespace std;
 using namespace SystemConstants;
 
+// github update "move and bounce"...
+
 // Vektoren und Matrizen
 vector<double> EigVals(N);
 vector< vector<double> > T(N,vector<double>(N));
@@ -40,25 +42,25 @@ class System {
 	System(double, double, double, double, double*, double*);
 	// destructor
 	~System();
-	
+
 	// Teilchen
 	double pos;
 	int index;
 	double v;
-	
+
 	// Zeit
 	double delta_t;
-	
+
 	// aktuelle Gittergeschw.
 	double xdot_index;
-	
+
 	// Gitter
 	double* y;
 	double* ydot;
-	
+
 	double* w;
 	double* wdot;
-	
+
 	// Methoden
 	double Collide(double, double, double, double);
 	int Move();
@@ -72,18 +74,18 @@ System::System(double delta_t_0, double pos_0, double v_0, double xdot_index_0, 
 	pos=pos_0;
 	index=round(pos_0/L) - 1;
 	v=v_0;
-	
-	delta_t=(2*k/m)*(cos(M_PI/(N+1)) - 1);
+
+	delta_t=delta_t_0; // (2*k/m)*(cos(M_PI/(N+1)) - 1);
 	xdot_index=xdot_index_0;
-	
+
 	y=new double[N];
 	ydot=new double[N];
-	
+
 	w=new double[N];
 	wdot=new double[N];
 
 	y=y_0;
-	ydot=ydot_0;	
+	ydot=ydot_0;
 }
 
 // destructor
@@ -109,14 +111,14 @@ int System::Move() {
 		pos=a - (pos - B*a);
 		v=-v;
 	}
-	
+
 	// Index updaten
 	index=round(pos/L) - 1;
-	
+
 	// Spezialfall Enden
 	if (index== N) index-=1; // rechts
 	if (index==-1) index+=1; // links
-	
+
 	return B;
 }
 
@@ -134,11 +136,11 @@ int System::Bounce() {
 		cout << "Watch out: v has become zero..." << '\n';
 	}
 	index+=sign_v;
-	
+
 	delta_t=L/(sign_v*v);
-	
+
 	// Spezialfall Enden
-	if (index==N) { 
+	if (index==N) {
 		index-=1; // rechts
 		delta_t=2*delta_t;
 		v=-v;
@@ -161,12 +163,12 @@ double System::Oscillate(int ind, double del_t) {
 	for (int i=0; i<N; i++) {
 		w[i]   =y[i]*cos(sqrt(-EigVals[i])*del_t)+ (ydot[i]/(sqrt(-EigVals[i])))*sin(sqrt(-EigVals[i])*del_t); // Watch out: assuming EigVals are negative
 		wdot[i]=ydot[i]*cos(sqrt(-EigVals[i])*del_t) - y[i]*(sqrt(-EigVals[i]))*sin(sqrt(-EigVals[i])*del_t);
-		
+
 		// compute next lattice velocity
 		#pragma ordered
 		next+=T[ind][i]*wdot[i];
 	}
-	
+
 	// interchange up-to-date and previous values
 	double* help_ptr;
 	double* helpdot_ptr;
@@ -176,10 +178,10 @@ double System::Oscillate(int ind, double del_t) {
 
 	y=w;
 	ydot=wdot;
-	
+
 	w=help_ptr;
 	wdot=helpdot_ptr;
-	
+
 	return next;
 }
 
@@ -188,23 +190,23 @@ double* System::Evolve(double* arr) {
 	// neue Geschwindigkeiten berechnen
 	double w=v; // temporarily copy v
 	v=this->Collide(M, v, m, xdot_index);
-	
+
 	double ww_pre=xdot_index; // save xdot_index before collision
 	xdot_index=this->Collide(m, xdot_index, M, w); // use w
 	double ww_post=xdot_index; // save xdot_index after collision but before oscillation
-	
+
 	// ydot updaten
 	#pragma omp parallel for
 	for (int i=0; i<N; i++) {
 		ydot[i]+=T[index][i]*(xdot_index - ww_pre); //Transponierung aber nicht notwendig: T ist sym.
 	}
-	
+
 	// move particle
 	int b=this->Move();
-	
+
 	// Gitter weiterentwickeln
 	xdot_index=this->Oscillate(index, delta_t);
-	
+
 	// Position, resultierenden Index, (resultierende) Geschwindigkeiten des Teilchens und der Gittermasse speichern (v ist dann die Ausgangsgeschw. fuer den folgenden Stoss)
 	*arr=b; arr++;
 	*arr=pos; arr++;
@@ -212,13 +214,13 @@ double* System::Evolve(double* arr) {
 	*arr=v; arr++; // here, v must be saved for the weighting
 	*arr=ww_pre; arr++;// use ww_pre
 	*arr=ww_post; arr++;// use ww_post
-	
+
 	return arr;
-	
+
 	// Dringend beachten: Das Teilchen fliegt mit der hier gespeicherten Geschw. v vom vorigen Ort zum hier gespeicherten Ort.
 	// Der Index gehoert zum vorigen Ort, weil er vor dem Update der Position gesetzt wird.
 	// b gehoert hingegen zur aktuellen, weil upgedateten Position.
-	
+
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -237,42 +239,43 @@ system_info << "# N: " << N << '\n';
 system_info << "# M: " << M << '\n';
 system_info << "# m: " << m << '\n';
 system_info << "# k: " << k << '\n';
-system_info << "# L: " << L << '\n'; 
+system_info << "# L: " << L << '\n';
 
-system_info << "# steps: " << steps << '\n';  
+system_info << "# steps: " << steps << '\n';
 system_info << "# chunk_size: " << chunk_size << '\n';
 system_info << "# resol: " << resol << '\n';
 
 system_info << "# delta_t: " << delta_t_0 << '\n';
-system_info << "# v_0: " << v_0 << '\n'; 
+system_info << "# v_0: " << v_0 << '\n';
 
 system_info.close();
 
 // specify starting positions
-double pos_0s[resol];
-for (int i=0; i<resol; i++) pos_0s[i]=i+1;
+//double pos_0s[resol];
+//for (int i=0; i<resol; i++) pos_0s[i]=i+1;
 
 for (int k=0; k<resol; k++) {
 	// must be reset because in the initialization the System pointers are set to these arrays
 	double y_0[N]={};
 	double ydot_0[N]={};
+	ydot_0[n-1]=excitation;
 
 	double pos_0=pos_0s[k]*L; // Anfangsposition Teilchen
 	int index_0=round(pos_0/L) - 1; // Anfangsindex Teilchen
 	double xdot_index_0=0.0; // Anfangsgeschwindigkeit respektive Gittermasse
-	
+
 	for (int j=0; j<N; j++) {
 		xdot_index_0+=T[index_0][j]*ydot_0[j];
 	}
-	
-	
+
+
 	System sys(delta_t_0, pos_0, v_0, xdot_index_0, y_0, ydot_0);
-	
+
 	for (int kk=0; kk<steps/chunk_size; kk++) {
-	
+
 		int neefl=6; // number of elements in each file line
 		vector<double> particle_data_array(neefl*chunk_size, 0.0);
-	
+
 		double* ptr;
 		ptr=&particle_data_array[0];
 
@@ -280,7 +283,7 @@ for (int k=0; k<resol; k++) {
 		for (int j=0; j<chunk_size; j++) {
 			ptr=sys.Evolve(ptr);
 		}
-	
+
 		// open file
 		ofstream particle_data;
 	    	ostringstream FileNameStream;

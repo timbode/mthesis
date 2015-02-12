@@ -22,6 +22,6 @@ for ((p=0; p<$stats; ++p)); do
 	echo "./exec.sh" >> job_$p.sub
 
 	# submit to queue
-	qsubt job_$p.sub # qsubn for the IBM cluster
+	qsubf job_$p.sub # qsubn for the IBM cluster
 	cd ..
 done

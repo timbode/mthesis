@@ -50,7 +50,7 @@ const int slit_2_upper=(N_[1]-1)/2 + slit_shift + slit_width; // note asymmetric
 
 // ------------------------------------------------------------------------------------------------
 // constants from particle.hh and droplet.hh
-const double M=500.0;//N_[0]*N_[0]-4*N_[0]+4; // particle mass
+const double M=100.0;//N_[0]*N_[0]-4*N_[0]+4; // particle mass
 const double D=0.4; // particle diameter
 const double f=12.5;//6; // "bouncing" frequency of particle
 // ------------------------------------------------------------------------------------------------
