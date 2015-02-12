@@ -39,6 +39,8 @@ class Droplet {
 		void Crashed();
 		void Touched();
 		double* Update(Verlet*, double*, double, double, double*);
+		double F(double, double);
+		double* TheForce(Verlet*, int*, double*);
 		void Evolve(Verlet*, double*);
 };
 
@@ -199,10 +201,11 @@ void Droplet::Touched() {
 	touch.close();
 }
 
-double* Droplet::Update(Verlet* obj, double* dat, double e, double e_grid, double* F) {
+double* Droplet::Update(Verlet* obj, double* dat, double e, double e_grid, double* f) {
 	// evolve droplet
 	for (unsigned int i=0; i<3; ++i) {
-		R[i]=R[i] + dt*V[i] + dt*dt*F[i]/M;
+		R[i]=R[i] + dt*V[i] + dt*dt*f[i]/M;
+		V[i]=V[i] + dt*f[i]/M; // velocity must be updated, too!
 		e+=0.5*M*V[i]*V[i]; // energy --- and the potential energy??
 
 		if (i<dim) {
@@ -219,28 +222,68 @@ double* Droplet::Update(Verlet* obj, double* dat, double e, double e_grid, doubl
 	return dat;
 }
 
+double Droplet::F(double alpha, double dist) {
+	return alpha/(dist*dist);
+}
+
+double* Droplet::TheForce(Verlet* obj, int* rr, double* FF) {
+	//cout << "================================" << '\n';
+	for (int dx=-cutoff; dx<=cutoff; ++dx) {
+		// take care of boundary - grid masses at the boundary do not exert a force
+		if (((rr[0] + dx) <= 0) || ((rr[0] + dx) >= (N_[0]-1))) continue;
+		for (int dy=-cutoff; dy<=cutoff; ++dy) {
+			// take care of boundary - grid masses at the boundary do not exert a force
+			if (((rr[1] + dy) <= 0) || ((rr[1] + dy) >= (N_[1]-1))) continue;			
+			
+			//cout << rr[0]+dx << "   " << rr[1]+dy << '\n';
+			
+			double* r_hat=new double[3]; // connecting vector
+			for (int i=0; i<3; ++i) {
+				int index=obj->Index(rr[0]+dx, rr[1]+dy, rr[2], i);
+				r_hat[i]=R[i] - obj->r1[index]; // these vectors point *from* the respective grid point *to* the droplet
+			}
+			double norm=sqrt(this->Dot(r_hat, r_hat));
+			r_hat=this->Normed(r_hat);
+			
+			for (int i=0; i<3; ++i) {
+				FF[i]+=F(1e-2, norm)*r_hat[i];
+				//cout << FF[i] << '\t';
+			} //cout << '\n';
+		}
+	}
+	//cout << "================================" << '\n';
+	return FF; // returns the total force
+}
+
 // underlying assumption: displacement of grid points is small enough such that only collisions with the nearest grid point actually occur
 void Droplet::Evolve(Verlet* Obj, double* datarr) {
 	for (unsigned int t=0; t<Steps; t++) {
 		double E=0; // droplet energy --- should be initialized to 0: icc handles it anyway, g++ does not ...
 		double E_grid=0; // grid energy
 		
-		// force
-		double* TheForce=new double[3];
-		for (int i=0; i<3; ++i) TheForce[i]=0;
-
 		// determine grid point nearest to droplet position
 		int* r=new int[3];
 		for (int i=0; i<3; ++i) {
 			r[i]=round(R[i]/L); // NOTE: factor of 1/L
 			}
-
+			
+		// ------------------------------------------------------------------------------------------------
+		// force
+		double* force=new double[3];
+		for (int i=0; i<3; ++i) force[i]=0;
+		if (t > 30e3) force=this->TheForce(Obj, r, force);
+		// ------------------------------------------------------------------------------------------------
+		
+		if (t == 30e3) V[0]=2.0;
+		
+		// ------------------------------------------------------------------------------------------------
 		if (wall && stop_if_crashed) {
 			if (r[0] == (N_[0]-1)) {
 				cout << "Arrived!" << '\n';
 				break;
 			}
 		}
+		// ------------------------------------------------------------------------------------------------
 
 		// exlcude collisions with outer grid points and make droplet stay in the box
 		double* n=new double[3];
@@ -281,7 +324,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 			}
 
 			// evolve
-			datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
+			datarr=this->Update(Obj, datarr, E, E_grid, force);
 			continue;
 		}
 
@@ -305,7 +348,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					}
 
 					// evolve
-					datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
+					datarr=this->Update(Obj, datarr, E, E_grid, force);
 					continue;
 				}
 
@@ -324,7 +367,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					}
 
 					// evolve
-					datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
+					datarr=this->Update(Obj, datarr, E, E_grid, force);
 					continue;
 				}
 
@@ -340,7 +383,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 					this->Reflect(n_wall);
 
 					// evolve
-					datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
+					datarr=this->Update(Obj, datarr, E, E_grid, force);
 					continue;
 				}
 			}
@@ -357,19 +400,20 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		}
 
 		double temp=0;
-/*	
+///*	
 		if ((t%800)==0) {
 			//cout << "Excited! " << '\n';
 			// make an excitation
 			Obj->r1[52330]+=L*1.0; //10150
 			//Obj->r1[50551]+=L*1.0;
 		}
-*/
+//*/		
+		// ------------------------------------------------------------------------------------------------
 		// check if it is time
 		if (this->Hit(t)) {
 			//cout << "Hit!" << "\n";
 			//temp=0.2;
-///*
+/*
 			// make collision
 			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
 
@@ -379,7 +423,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				Obj->rdot[index]=rdot_nearest[i];
 				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index];
 			}
-//*/
+*/
 			
 
 /*
@@ -390,9 +434,10 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 			}
 */
 		}
+		// ------------------------------------------------------------------------------------------------
 
 		// evolve
-		datarr=this->Update(Obj, datarr, E, E_grid, TheForce);
+		datarr=this->Update(Obj, datarr, E, E_grid, force);
 	}
 }
 // ------------------------------------------------------------------------------------------------

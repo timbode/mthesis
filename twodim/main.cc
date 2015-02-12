@@ -27,7 +27,7 @@ int repeat=atoi(argv[1]);
 int p=atoi(argv[2]);
 int rep=atoi(argv[3]);
 
-int steps=30e3;
+int steps=50e3;
 double dt=1e-4; // should be 1e-5 or 1e-6
 double T=steps*dt;
 
@@ -51,7 +51,7 @@ double y_start=L*slit_2_upper - (L*slit_width)*0.5 + L*0.5*slit_width*UNI();
 //	y_start=a_Y/2 + (L*slit_shift + L*slit_width)*UNI();
 //}
 //double R_0 [3]={0.1, y_start, 0.0};
-double R_0 [3]={0.55, y_start, 0.0};
+double R_0 [3]={0.35, y_start, 0.0};
 if (rep==0) {
 	cout << "========================================================" << '\n';
 	cout << "Start position: ";
@@ -64,7 +64,7 @@ if (rep==0) {
 	}
 	cout << "========================================================" << '\n';
 }
-//double V_0 [3]={0.2, 0.0, 0.0};
+//double V_0 [3]={0.5, 0.0, 0.0};
 double V_0 [3]={0, 0, 0};
 
 unsigned int stats=1;

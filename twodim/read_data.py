@@ -72,7 +72,7 @@ for root, _, files in os.walk(SystemData["_DATA_"]+'/chunks'):
 				if (x==0.0 and y==0.0): continue
 				
 				# burn-in
-				#if int(rep) == 0: continue # watch the types: rep and p have type str
+				if k < 30e3: continue #if int(rep) == 0: continue # watch the types: rep and p have type str
 				
 				if int(p) == 0:
 					if k % 1 == 0:

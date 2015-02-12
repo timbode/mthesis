@@ -243,7 +243,7 @@ double Verlet::Step() {
 			}
 		}
 		r0=r1; r1=r2; r2=r0;
-		return 100*rdot[88420];//104460];//20200];//E//[60601];
+		return E;//100*rdot[88420];//104460];//20200];//E//[60601];
 }
 
 void Verlet::Burn_in() {
