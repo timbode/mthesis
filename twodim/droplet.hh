@@ -249,7 +249,7 @@ double* Droplet::TheForce(Verlet* obj, int* rr, double* FF) {
 			r_hat=this->Normed(r_hat);
 			
 			for (int i=0; i<3; ++i) {
-				FF[i]+=F(1e0*v_squared, norm)*r_hat[i];
+				FF[i]+=F(-1e-2/(v_squared + 1e0), norm)*r_hat[i];
 				//cout << v_squared << '\t';
 			} //cout << '\n';
 		}
@@ -274,10 +274,10 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		// force
 		double* force=new double[3];
 		for (int i=0; i<3; ++i) force[i]=0;
-		if (t > 30e3) force=this->TheForce(Obj, r, force);
+		//if (t > 30e3) force=this->TheForce(Obj, r, force);
 		// ------------------------------------------------------------------------------------------------
 		
-		if (t == 30e3) V[0]=0.1;
+		if (t == 30e3) V[0]=10.0;
 		
 		// ------------------------------------------------------------------------------------------------
 		if (wall && stop_if_crashed) {
@@ -407,8 +407,15 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		if ((t%800)==0) {
 			//cout << "Excited! " << '\n';
 			// make an excitation
-			Obj->r1[52330]+=L*1.0; //10150
-			//Obj->r1[50551]+=L*1.0;
+			/*
+			for (int i=-20; i<=20; ++i) {
+				Obj->r1[52330 + N_[1]*i]+=L*1.0;
+				Obj->r1[52331 + N_[1]*i]+=L*1.0;
+				Obj->r1[52329 + N_[1]*i]+=L*1.0;
+			}*/
+			
+			Obj->r1[52330]+=L*1.0; //30275, 52330, 10150
+			//Obj->r1[213131]+=L*1.0;
 		}
 //*/		
 		// ------------------------------------------------------------------------------------------------
@@ -416,9 +423,9 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 		if (this->Hit(t)) {
 			//cout << "Hit!" << "\n";
 			//temp=0.2;
-/*
+///*
 			// make collision
-			rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
+			if (t > 30e3) rdot_nearest=this->Collide(m, r_nearest, rdot_nearest);
 
 			// update r1 according to new velocity: r1=dt*rdot + r0
 			for (int i=0; i<3; ++i) {
@@ -426,7 +433,7 @@ void Droplet::Evolve(Verlet* Obj, double* datarr) {
 				Obj->rdot[index]=rdot_nearest[i];
 				Obj->r1[index]=dt*rdot_nearest[i] + Obj->r0[index];
 			}
-*/
+//*/
 			
 
 /*

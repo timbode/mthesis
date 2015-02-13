@@ -63,7 +63,7 @@ for s in xrange(SystemData["stats"]):
 
 	fig=plt.figure()
 	plt.title('Grid kinetic energy')
-	plt.pcolormesh(X, Y, E, cmap=plt.cm.Blues)# Blues, jet
+	plt.pcolormesh(X, Y, E, cmap=plt.cm.seismic)# Blues, jet, coolwarm
 	plt.grid(True, color='white')
 	plt.xlabel('x')
 	plt.ylabel('y')

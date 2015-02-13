@@ -51,7 +51,7 @@ double y_start=L*slit_2_upper - (L*slit_width)*0.5 + L*0.5*slit_width*UNI();
 //	y_start=a_Y/2 + (L*slit_shift + L*slit_width)*UNI();
 //}
 //double R_0 [3]={0.1, y_start, 0.0};
-double R_0 [3]={0.5005, y_start, 0.0};
+double R_0 [3]={0.515, y_start, 0.0};
 if (rep==0) {
 	cout << "========================================================" << '\n';
 	cout << "Start position: ";
@@ -67,7 +67,7 @@ if (rep==0) {
 //double V_0 [3]={0.5, 0.0, 0.0};
 double V_0 [3]={0, 0, 0};
 
-unsigned int stats=10;
+unsigned int stats=1;
 
 ofstream system_data;
 ostringstream FileNameStream;

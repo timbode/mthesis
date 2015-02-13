@@ -27,7 +27,7 @@ const bool excitation=0;
 
 // ------------------------------------------------------------------------------------------------
 // cut-off (given in layers of neighbouring points)
-const int cutoff=50;
+const int cutoff=20; // increasing this is very RAM-expensive!!!
 // ------------------------------------------------------------------------------------------------
 
 // ------------------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ const int  left_face_pos=(N_[0]-1)/2 - half_width; // on the x-axis
 const int right_face_pos=(N_[0]-1)/2 + half_width;
 
 // slit 1 BELOW the middle line (y==const) and slit 2 ABOVE
-const int slit_shift=1;
+const int slit_shift=10;
 const int slit_width=7;
 const int slit_1_lower=(N_[1]-1)/2 - slit_shift - slit_width; // on the y-axis
 const int slit_1_upper=(N_[1]-1)/2 - slit_shift; // note asymmetric definition
